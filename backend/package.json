@@ -37,7 +37,8 @@
     "@types/express-fileupload": "^1.5.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
-    "@types/node": "^24.3.2",
-    "@types/nodemailer": "^7.0.1"
+    "@types/node": "^24.10.1",
+    "@types/nodemailer": "^7.0.1",
+    "typescript": "^5.9.3"
   }
 }
