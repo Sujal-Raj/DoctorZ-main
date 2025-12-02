@@ -8,4 +8,3 @@ router.get("/doctor/:doctorId", getBookingsByDoctor);
 router.put("/:bookingId/status", updateBookingStatus);
 router.get("/doctor/:doctorId/all-patient", getBookingsByDoctorAllPatient);
 export default router;
-//# sourceMappingURL=booking.routes.js.map

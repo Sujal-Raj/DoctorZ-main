@@ -424,4 +424,3 @@ export default {
     getPackageDetailsById,
     bookPackage,
 };
-//# sourceMappingURL=lab.controller.js.map

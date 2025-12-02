@@ -7,4 +7,3 @@ export const transporter = nodemailer.createTransport({
         pass: process.env.MAIL_PASS, // app password
     },
 });
-//# sourceMappingURL=email.js.map

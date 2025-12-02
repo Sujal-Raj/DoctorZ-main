@@ -59,4 +59,3 @@ const patientSchema = new mongoose.Schema({
 }, { timestamps: true });
 const patientModel = mongoose.model("Patient", patientSchema, "Patient");
 export default patientModel;
-//# sourceMappingURL=patient.model.js.map

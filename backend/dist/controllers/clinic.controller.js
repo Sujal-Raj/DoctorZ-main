@@ -437,4 +437,3 @@ export const getClinicDoctorStatus = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-//# sourceMappingURL=clinic.controller.js.map

@@ -1,15 +1,12 @@
 import mongoose from "mongoose";
-import { json } from "stream/consumers";
 import patientModel from "../models/patient.model.js";
 import bcrypt from "bcryptjs";
 import timeSlotsModel from "../models/timeSlots.model.js";
-import { get } from "http";
 import jwt from "jsonwebtoken";
 import EMRModel from "../models/emr.model.js";
 import Booking from "../models/booking.model.js";
-import { FaV } from "react-icons/fa6";
 import PrescriptionModel from "../models/prescription.model.js";
-import { LabModel, LabTestBookingModel } from "../models/lab.model.js";
+import { LabTestBookingModel } from "../models/lab.model.js";
 const patientRegister = async (req, res) => {
     try {
         console.log("Received body:", req.body);
@@ -446,4 +443,3 @@ export default {
     getUserPrescription,
     getUserLabTest,
 };
-//# sourceMappingURL=patient.controller.js.map

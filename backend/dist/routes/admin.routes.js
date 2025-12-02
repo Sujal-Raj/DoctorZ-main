@@ -21,4 +21,3 @@ router.get("/clinics/pending", getPendingClinics);
 router.put("/clinic/:id/approve", approveClinic);
 router.put("/clinic/:id/reject", rejectClinic);
 export default router;
-//# sourceMappingURL=admin.routes.js.map

@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 const slotSchema = new Schema({
     time: { type: String, required: true },
     isActive: { type: Boolean, default: false }
@@ -10,4 +10,3 @@ const timeSlotSchema = new Schema({
     createdAt: { type: Date, default: Date.now },
 });
 export default mongoose.model("TimeSlot", timeSlotSchema);
-//# sourceMappingURL=timeSlots.model.js.map

@@ -1,12 +1,10 @@
 import bcrypt from "bcryptjs";
 import { transporter } from "../utils/email.js";
-import nodemailer from "nodemailer";
 import doctorModel from "../models/doctor.model.js";
 import Booking from "../models/booking.model.js";
 import jwt from "jsonwebtoken";
 import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
-import mongoose from "mongoose";
 const doctorRegister = async (req, res) => {
     try {
         console.log("Text fields:", req.body);
@@ -426,4 +424,3 @@ export default {
     acceptDoctorRequest,
     rejectDoctorRequest,
 };
-//# sourceMappingURL=doctor.controller.js.map

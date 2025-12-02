@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 const emrSchema = new mongoose.Schema({
     doctorId: {
         type: Schema.Types.ObjectId,
@@ -37,4 +37,3 @@ const emrSchema = new mongoose.Schema({
 }, { timestamps: true });
 const EMRModel = mongoose.model("EMR", emrSchema, "EMR");
 export default EMRModel;
-//# sourceMappingURL=emr.model.js.map

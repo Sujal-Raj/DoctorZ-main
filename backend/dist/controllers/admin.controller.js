@@ -4,7 +4,6 @@ import doctorModel from "../models/doctor.model.js";
 import nodemailer from "nodemailer";
 import { LabModel } from "../models/lab.model.js";
 import clinicModel from "../models/clinic.model.js";
-import Admin from "../models/adminModel.js";
 import bcrypt from "bcryptjs";
 import AdminModel from "../models/adminModel.js";
 dotenv.config();
@@ -258,4 +257,3 @@ export const adminLogin = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-//# sourceMappingURL=admin.controller.js.map

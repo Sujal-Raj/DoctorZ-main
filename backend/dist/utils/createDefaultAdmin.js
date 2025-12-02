@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import AdminModel from "../models/adminModel.js";
-import { randomBytes } from "crypto";
 export const createDefaultAdmin = async () => {
     const existingAdmin = await AdminModel.findOne();
     if (existingAdmin) {
@@ -17,4 +16,3 @@ export const createDefaultAdmin = async () => {
     await newAdmin.save();
     console.log(`Default admin created with ID: ${adminId} and Password: ${password}`);
 };
-//# sourceMappingURL=createDefaultAdmin.js.map

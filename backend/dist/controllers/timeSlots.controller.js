@@ -149,4 +149,3 @@ export const getActiveSlots = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-//# sourceMappingURL=timeSlots.controller.js.map

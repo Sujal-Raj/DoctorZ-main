@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { Types } from "mongoose";
 const doctorSchema = new mongoose.Schema({
     doctorId: { type: String, default: null, required: false },
     fullName: {
@@ -107,4 +106,3 @@ const doctorSchema = new mongoose.Schema({
 });
 const doctorModel = mongoose.model("Doctor", doctorSchema, "Doctor");
 export default doctorModel;
-//# sourceMappingURL=doctor.model.js.map

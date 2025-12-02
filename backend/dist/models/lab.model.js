@@ -1,5 +1,5 @@
 ///////////////////// Manish Works (Final Fixed Version) ///////////////////////
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 const LabSchema = new Schema({
     labId: { type: String, required: true, unique: true },
     name: { type: String, required: true },
@@ -68,4 +68,3 @@ const PackageBookingSchema = new Schema({
     },
 }, { timestamps: true });
 export const PackageBookingModel = mongoose.model("PackageBooking", PackageBookingSchema);
-//# sourceMappingURL=lab.model.js.map

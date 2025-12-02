@@ -7,4 +7,3 @@ router.put("/editTimeSlot", editTimeSlot);
 router.patch("/updateSlot/:id", updateSlot);
 router.get("/getActiveSlots/:doctorId", getActiveSlots);
 export default router;
-//# sourceMappingURL=timeSlots.routes.js.map

@@ -27,4 +27,3 @@ router.get("/getAllPackagesByLabId/:labId", labController.getAllPackagesByLabId)
 router.put("/updatePackage/:packageId", labController.updateLabPackage);
 router.delete("/deletePackage/:packageId", labController.deleteLabPackage);
 export default router;
-//# sourceMappingURL=lab.routes.js.map

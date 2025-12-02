@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import doctorController from "../controllers/doctor.controller.js";
 import Router from 'express';
 import { upload } from "../middlewares/upload.js";
@@ -22,4 +21,3 @@ router.get('/notifications/:doctorId', doctorController.getDoctorNotifications);
 router.post('/notifications/accept', doctorController.acceptDoctorRequest);
 router.post('/notifications/reject', doctorController.rejectDoctorRequest);
 export default router;
-//# sourceMappingURL=doctor.routes.js.map

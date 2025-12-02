@@ -84,4 +84,3 @@ export default dbConnect;
 //   }
 // };
 // export default dbConnect;
-//# sourceMappingURL=dbConfig.js.map

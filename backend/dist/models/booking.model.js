@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 const bookingSchema = new Schema({
     doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
     userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
@@ -29,4 +29,3 @@ const bookingSchema = new Schema({
 }, { timestamps: true });
 const Booking = mongoose.model("Booking", bookingSchema);
 export default Booking;
-//# sourceMappingURL=booking.model.js.map

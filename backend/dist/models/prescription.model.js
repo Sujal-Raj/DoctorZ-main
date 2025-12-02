@@ -27,4 +27,3 @@ const PrescriptionSchema = new Schema({
 });
 const PrescriptionModel = mongoose.model("Prescription", PrescriptionSchema);
 export default PrescriptionModel;
-//# sourceMappingURL=prescription.model.js.map

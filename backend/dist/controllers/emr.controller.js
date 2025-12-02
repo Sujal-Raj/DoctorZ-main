@@ -111,4 +111,3 @@ export const getEMRByAadhar = async (req, res) => {
         return res.status(500).json({ message: "Error fetching EMR by Aadhar" });
     }
 };
-//# sourceMappingURL=emr.controller.js.map

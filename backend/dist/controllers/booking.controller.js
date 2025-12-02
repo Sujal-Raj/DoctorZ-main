@@ -146,4 +146,3 @@ export const getBookingsByDoctorAllPatient = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-//# sourceMappingURL=booking.controller.js.map

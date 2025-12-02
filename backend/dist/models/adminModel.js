@@ -48,8 +48,7 @@
 // // 5. Create and export the model
 // const Admin: Model<IAdmin> = mongoose.model<IAdmin>('Admin', AdminSchema);
 // export default Admin;
-import mongoose, { Document, Schema, Model } from 'mongoose';
-import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 const AdminSchema = new mongoose.Schema({
     adminId: {
         type: String,
@@ -67,4 +66,3 @@ const AdminSchema = new mongoose.Schema({
 });
 const AdminModel = mongoose.model('Admin', AdminSchema);
 export default AdminModel;
-//# sourceMappingURL=adminModel.js.map

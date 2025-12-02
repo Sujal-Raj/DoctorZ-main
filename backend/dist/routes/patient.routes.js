@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { Router } from "express";
 import patientController from "../controllers/patient.controller.js";
 import multer from "multer";
@@ -33,4 +32,3 @@ router.get("/isFavouriteClinic/:patientId/:clinicId", patientController.isFavour
 router.get("/:id", patientController.getPatientById);
 router.delete("/:id", patientController.deleteUser);
 export default router;
-//# sourceMappingURL=patient.routes.js.map

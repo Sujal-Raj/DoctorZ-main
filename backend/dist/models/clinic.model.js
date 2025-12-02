@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose from "mongoose";
 const clinicSchema = new mongoose.Schema({
     clinicName: {
         type: String,
@@ -58,4 +58,3 @@ const clinicSchema = new mongoose.Schema({
 });
 const clinicModel = mongoose.model("Clinic", clinicSchema, "Clinic");
 export default clinicModel;
-//# sourceMappingURL=clinic.model.js.map

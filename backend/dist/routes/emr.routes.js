@@ -10,4 +10,3 @@ router.post("/createEmr", upload.array("reports"), createEMR);
 // router.get("/:patientId", getEMRByPatientId);
 router.get("/:aadhar", getEMRByAadhar);
 export default router;
-//# sourceMappingURL=emr.routes.js.map

@@ -17,4 +17,3 @@ export const generateTimeSlots = (start, end, interval = 15) => {
     }
     return slots;
 };
-//# sourceMappingURL=slotGenerator.js.map

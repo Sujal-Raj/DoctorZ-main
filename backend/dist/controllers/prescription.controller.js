@@ -186,4 +186,3 @@ export const downloadPrescription = async (req, res) => {
         res.status(500).send("Error downloading image");
     }
 };
-//# sourceMappingURL=prescription.controller.js.map

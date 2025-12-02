@@ -19,4 +19,3 @@ router.get("/getClinicStats/:clinicId", getClinicStatus);
 router.post("/send-doctor-request", sendDoctorRequest);
 router.get("/doctor-status/:clinicId", getClinicDoctorStatus);
 export default router;
-//# sourceMappingURL=clinic.routes.js.map
