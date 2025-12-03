@@ -3,6 +3,7 @@ dotenv.config();
 import mongoose from "mongoose";
 import patientModel from "../models/patient.model.js";
 import path from "path";
+import { createDefaultAdmin } from "../utils/createDefaultAdmin.js";
 console.log(process.env.NODE_ENV);
 console.log(process.env.MONGO_DEVELOPMENT_URI, process.env.MONGO_ATLAS_URI);
 let MONGO_URI;
@@ -21,6 +22,7 @@ const dbConnect = async () => {
         }
         await mongoose.connect(MONGO_URI);
         console.log("Database Connected");
+        createDefaultAdmin();
     }
     catch (error) {
         console.log(error);

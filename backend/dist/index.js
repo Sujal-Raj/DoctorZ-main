@@ -18,7 +18,6 @@ import labRoutes from "./routes/lab.routes.js";
 import emrRoutes from "./routes/emr.routes.js";
 import messageModel from "./models/message.model.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
-import { createDefaultAdmin } from "./utils/createDefaultAdmin.js";
 // dotenv.config();
 dbConnect();
 // const PORT = 3000;
@@ -41,7 +40,7 @@ const server = createServer(app);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // restrict in production to your frontend URL
+        origin: "https://doctor-z-main-eight.vercel.app/", // restrict in production to your frontend URL
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -167,7 +166,10 @@ app.use("/api/prescription", prescriptionRoutes);
 //     console.log("Server running at " + PORT);
 //     console.log("Socket also started");
 // })
-createDefaultAdmin();
+// createDefaultAdmin();
+app.get("/", (req, res) => {
+    res.send("Running the / route");
+});
 // Start server
 server.listen(PORT, () => {
     console.log(`Server running at ${PORT}`);
