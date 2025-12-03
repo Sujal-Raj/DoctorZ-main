@@ -34,7 +34,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: "https://doctor-z-main-eight.vercel.app/", // your frontend origin in development
+  origin: "https://doctor-z-main-eight.vercel.app", // your frontend origin in development
   credentials: true
 }));
 
@@ -51,7 +51,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 const io = new Server(server, {
   cors: {
-    origin: "https://doctor-z-main-eight.vercel.app/", // restrict in production to your frontend URL
+    origin: "https://doctor-z-main-eight.vercel.app", // restrict in production to your frontend URL
     methods: ["GET", "POST"],
     credentials: true
   }
