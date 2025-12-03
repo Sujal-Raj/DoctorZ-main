@@ -203,6 +203,10 @@ app.use("/api/prescription",prescriptionRoutes);
 
 // createDefaultAdmin();
 
+app.get("/",(req,res)=>{
+  res.send("Running the / route");
+})
+
 // Start server
 server.listen(PORT, () => {
   console.log(`Server running at ${PORT}`);
