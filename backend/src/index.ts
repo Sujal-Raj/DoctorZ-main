@@ -51,7 +51,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // restrict in production to your frontend URL
+    origin: "https://doctor-z-main-eight.vercel.app/", // restrict in production to your frontend URL
     methods: ["GET", "POST"],
     credentials: true
   }
