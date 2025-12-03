@@ -35,10 +35,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react' // or vue, etc.
 import { visualizer } from 'rollup-plugin-visualizer'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     visualizer({
       filename: 'dist/stats.html',
       gzipSize: true,
