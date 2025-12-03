@@ -6,7 +6,7 @@ import packageIcon from "../assets/package.webp";
 import kidneyIcon from "../assets/kidneyIcon.png";
 import vitaminIcon from "../assets/vitaminIcon.jpg";
 import heartIcon from "../assets/heartIcon.jpg";
-import pregnancyIcon from "../assets/pregnancyIcon.jpg";
+import pregnancyIcon from "../assets/pregnancy.png";
 import {
   Clock,
   FileText,
