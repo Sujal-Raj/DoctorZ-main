@@ -9,7 +9,7 @@ import diabetes from "../../assets/Diabetes.png";
 import fever from "../../assets/Fever and infections.png";
 import Pregnancy from "../../assets/pregnancy.png";
 import vitamin from "../../assets/vitamin.png";
-import Liver from "../../assets/Liver.png";
+import Liver from "../../assets/liver.png";
 import kidney from "../../assets/kidney.png";
 import Heart from "../../assets/Heart.png";
 import Imaging from "../../assets/Imaging.png";
