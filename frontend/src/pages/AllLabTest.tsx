@@ -17,7 +17,7 @@ import {
 
 // 🧩 PNG icons
 import fullbody from "../assets/icons/fullbody.png";
-import diabetes from "../assets/icons/diabetes.png";
+import diabetes from "../assets/icons/Diabetes.png";
 import womens from "../assets/icons/womens.png";
 import thyroid from "../assets/icons/thyroid.png";
 import vitamin from "../assets/icons/vitamin.png";
