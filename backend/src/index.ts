@@ -201,7 +201,7 @@ app.use("/api/prescription",prescriptionRoutes);
 
 
 
-createDefaultAdmin();
+// createDefaultAdmin();
 
 // Start server
 server.listen(PORT, () => {
