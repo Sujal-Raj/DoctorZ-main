@@ -5,7 +5,7 @@ import api from "../../Services/mainApi";
 import Swal from "sweetalert2";
 
 // JSON Files
-import medicineData from "../../assets/indian_medicine_data.json";
+// import medicineData from "../../assets/indian_medicine_data.json";
 import diseaseData from "../../assets/Disease_symptom_dataset.json";
 import symptomData from "../../assets/symptoms.json";
 
@@ -48,6 +48,14 @@ const PrescriptionForm = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
 
   const [allMedicines, setAllMedicines] = useState<string[]>([]);
+  setAllMedicines([
+  "Paracetamol",
+  "Ibuprofen",
+  "Amoxicillin",
+  "Cetirizine",
+  "Azithromycin",
+  "Dolo 650"
+])
   const [filteredMedicines, setFilteredMedicines] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -55,13 +63,13 @@ const PrescriptionForm = () => {
   const [loading, setLoading] = useState(false);
 
   // Load all medicine names
-  useEffect(() => {
-    const meds = Array.isArray(medicineData) ? medicineData : [];
-    const names = meds
-      .map((m: any) => m?.name)
-      .filter((n: any) => typeof n === "string" && n.trim() !== "");
-    setAllMedicines(names);
-  }, []);
+  // useEffect(() => {
+  //   const meds = Array.isArray(medicineData) ? medicineData : [];
+  //   const names = meds
+  //     .map((m: any) => m?.name)
+  //     .filter((n: any) => typeof n === "string" && n.trim() !== "");
+  //   setAllMedicines(names);
+  // }, []);
 
   // Load all diseases
   useEffect(() => {
