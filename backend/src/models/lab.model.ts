@@ -76,6 +76,7 @@ const TestSchema = new Schema<TestDocument>(
 export const TestModel = mongoose.model<TestDocument>("LabTest", TestSchema);
 
 // ------------------ LAB TEST BOOKING MODEL ------------------
+// interface
 export interface LabTestBookingDocument extends Document {
   labId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
@@ -83,7 +84,8 @@ export interface LabTestBookingDocument extends Document {
   category: string;
   price: number;
   status: "pending" | "completed" | "cancelled";
-  bookedAt: Date;
+  bookingDate: Date; // <-- user chosen date
+  bookedAt: Date; // when the booking was created in system
 }
 
 const LabTestBookingSchema = new Schema<LabTestBookingDocument>(
@@ -98,10 +100,12 @@ const LabTestBookingSchema = new Schema<LabTestBookingDocument>(
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
-    bookedAt: { type: Date, default: Date.now },
+    bookingDate: { type: Date, required: true }, // <-- now required
+    bookedAt: { type: Date, default: Date.now }, // creation timestamp
   },
   { timestamps: true }
 );
+
 
 export const LabTestBookingModel = mongoose.model<LabTestBookingDocument>(
   "LabTestBooking",
