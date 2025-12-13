@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import doctorController from "../controllers/doctor.controller.js";
 import Router from 'express';
-import { upload } from "../middlewares/upload.js";
+// import { upload } from "../middlewares/upload.js";
+import { upload } from "../middlewares/multer.js";
+
 
 const router = Router();
 
