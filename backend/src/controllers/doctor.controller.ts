@@ -87,9 +87,13 @@ interface Params {
 
 const doctorRegister = async (req: Request, res: Response) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
     const files = req.files as {
       [fieldname: string]: Express.Multer.File[];
     };
+    
+
 
     let degreeCertUrl = "";
     let photoUrl = "";
