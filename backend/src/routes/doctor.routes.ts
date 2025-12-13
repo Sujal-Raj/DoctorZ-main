@@ -6,9 +6,11 @@ import { upload } from "../middlewares/upload.js";
 const router = Router();
 
 router.post('/register',upload.fields([
-  { name: 'degreeCert', maxCount: 1 },
-  { name: 'photo', maxCount: 1 },
-  { name: 'signature', maxCount: 1 },]),doctorController.doctorRegister);
+  { name: "degreeCert", maxCount: 1 },
+  { name: "photo", maxCount: 1 },
+  { name: "signature", maxCount: 1 },
+])
+,doctorController.doctorRegister);
 
   router.get('/search',doctorController.searchDoctors);
 router.get('/allDoctors/:patientId',doctorController.getAllDoctors);

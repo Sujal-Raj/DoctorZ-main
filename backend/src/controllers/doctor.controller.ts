@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
 import mongoose from "mongoose";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js"
 
 interface MulterFiles {
   [fieldname: string]: Express.Multer.File[];
@@ -17,74 +18,143 @@ interface Params {
   doctorId: string; // this ensures `req.params.doctorId` is typed as string
 }
 
+// const doctorRegister = async (req: Request, res: Response) => {
+//   try {
+//     console.log("Text fields:", req.body);
+//     console.log("Files:", req.files);
+
+//     const files = req.files as MulterFiles | undefined;
+
+//     const experience = Number(req.body.experience);
+//     const consultationFee = Number(req.body.fees);
+//     const Aadhar = Number(req.body.aadhar);
+//     const Address = req.body.address;
+//     const State = req.body.state;
+//     const City = req.body.city;
+//     const dob = new Date(req.body.dob);
+//     const MobileNo = req.body.mobileNo;
+//     const email = req.body.email;
+
+//     const degreeCert = files?.["degreeCert"]?.[0]?.filename || "";
+//     const photo = files?.["photo"]?.[0]?.filename || "";
+//     const signature = files?.["signature"]?.[0]?.filename || "";
+
+//     if (!req.body.password) {
+//       return res.status(400).json({ message: "Password is required" });
+//     }
+
+//     const hashedPassword = await bcrypt.hash(req.body.password, 10);
+//     const clinicId = req.body.clinicId;
+
+//     const doctor = new doctorModel({
+//       fullName: req.body.fullName,
+//       password: hashedPassword,
+//       gender: req.body.gender,
+//       dob,
+//       MobileNo,
+//       MedicalRegistrationNumber: req.body.regNumber,
+//       specialization: req.body.specialization || "",
+//       qualification: req.body.qualification,
+//       experience,
+//       consultationFee,
+//       language: req.body.languages || "",
+//       Aadhar,
+//       Address,
+//       State,
+//       City,
+//       DegreeCertificate: degreeCert,
+//       photo,
+//       signature,
+//       email,
+//       clinic: clinicId,
+//       status: "pending",
+//     });
+
+//     if (clinicId) {
+//       await clinicModel.findByIdAndUpdate(clinicId, {
+//         $push: { doctors: doctor._id },
+//       });
+//     }
+
+//     await doctor.save();
+//     return res.status(201).json({ message: "Doctor registered", doctor });
+//   } catch (error) {
+//     console.error("Registration error:", error);
+//     return res.status(500).json({ message: "Registration failed", error });
+//   }
+// };
+
+
 const doctorRegister = async (req: Request, res: Response) => {
   try {
-    console.log("Text fields:", req.body);
-    console.log("Files:", req.files);
+    const files = req.files as {
+      [fieldname: string]: Express.Multer.File[];
+    };
 
-    const files = req.files as MulterFiles | undefined;
+    let degreeCertUrl = "";
+    let photoUrl = "";
+    let signatureUrl = "";
 
-    // Convert data types
-    const experience = Number(req.body.experience);
-    const consultationFee = Number(req.body.fees);
-    const Aadhar = Number(req.body.aadhar);
-    const Address = req.body.address;
-    const State = req.body.state;
-    const City = req.body.city;
-    const dob = new Date(req.body.dob);
-    const MobileNo = req.body.mobileNo;
-    const email = req.body.email;
+    if (files?.degreeCert?.[0]) {
+      degreeCertUrl = await uploadToCloudinary(
+        files.degreeCert[0].buffer,
+        "doctors/degree",
+        "raw" // pdf support
+      );
+    }
 
-    // Handle uploaded files
-    const degreeCert = files?.["degreeCert"]?.[0]?.filename || "";
-    const photo = files?.["photo"]?.[0]?.filename || "";
-    const signature = files?.["signature"]?.[0]?.filename || "";
+    if (files?.photo?.[0]) {
+      photoUrl = await uploadToCloudinary(
+        files.photo[0].buffer,
+        "doctors/photos"
+      );
+    }
 
-    if (!req.body.password) {
-      return res.status(400).json({ message: "Password is required" });
+    if (files?.signature?.[0]) {
+      signatureUrl = await uploadToCloudinary(
+        files.signature[0].buffer,
+        "doctors/signatures"
+      );
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const clinicId = req.body.clinicId;
 
     const doctor = new doctorModel({
       fullName: req.body.fullName,
       password: hashedPassword,
       gender: req.body.gender,
-      dob,
-      MobileNo,
+      dob: new Date(req.body.dob),
+      MobileNo: req.body.mobileNo,
       MedicalRegistrationNumber: req.body.regNumber,
-      specialization: req.body.specialization || "",
+      specialization: req.body.specialization,
       qualification: req.body.qualification,
-      experience,
-      consultationFee,
-      language: req.body.languages || "",
-      Aadhar,
-      Address,
-      State,
-      City,
-      DegreeCertificate: degreeCert,
-      photo,
-      signature,
-      email,
-      clinic: clinicId,
+      experience: Number(req.body.experience),
+      consultationFee: Number(req.body.fees),
+      language: req.body.languages,
+      Aadhar: Number(req.body.aadhar),
+      Address: req.body.address,
+      State: req.body.state,
+      City: req.body.city,
+      DegreeCertificate: degreeCertUrl,
+      photo: photoUrl,
+      signature: signatureUrl,
+      email: req.body.email,
+      clinic: req.body.clinicId,
       status: "pending",
     });
 
-    // Add doctor reference to clinic
-    if (clinicId) {
-      await clinicModel.findByIdAndUpdate(clinicId, {
-        $push: { doctors: doctor._id },
-      });
-    }
-
     await doctor.save();
-    return res.status(201).json({ message: "Doctor registered", doctor });
+
+    return res.status(201).json({
+      message: "Doctor registered successfully",
+      doctor,
+    });
   } catch (error) {
-    console.error("Registration error:", error);
-    return res.status(500).json({ message: "Registration failed", error });
+    console.error(error);
+    return res.status(500).json({ message: "Registration failed" });
   }
 };
+
 
 // ==========================
 // Doctor Login
