@@ -87,40 +87,54 @@ interface Params {
 
 const doctorRegister = async (req: Request, res: Response) => {
   try {
+    console.log("Incoming request: POST /api/doctor/register");
     console.log("BODY:", req.body);
     console.log("FILES:", req.files);
+
     const files = req.files as {
       [fieldname: string]: Express.Multer.File[];
     };
-    
 
+    // ---------- FILE VALIDATION ----------
+    if (!files?.degreeCert?.[0]) {
+      return res.status(400).json({ message: "Degree certificate is required" });
+    }
 
+    if (!files?.photo?.[0]) {
+      return res.status(400).json({ message: "Photo is required" });
+    }
+
+    if (!files?.signature?.[0]) {
+      return res.status(400).json({ message: "Signature is required" });
+    }
+
+    // ---------- UPLOAD TO CLOUDINARY ----------
     let degreeCertUrl = "";
     let photoUrl = "";
     let signatureUrl = "";
 
-    if (files?.degreeCert?.[0]) {
+    try {
       degreeCertUrl = await uploadToCloudinary(
         files.degreeCert[0].buffer,
         "doctors/degree",
-        "raw" // pdf support
+        files.degreeCert[0].mimetype === "application/pdf" ? "raw" : "image"
       );
-    }
 
-    if (files?.photo?.[0]) {
       photoUrl = await uploadToCloudinary(
         files.photo[0].buffer,
         "doctors/photos"
       );
-    }
 
-    if (files?.signature?.[0]) {
       signatureUrl = await uploadToCloudinary(
         files.signature[0].buffer,
         "doctors/signatures"
       );
+    } catch (uploadError) {
+      console.error("Cloudinary upload error:", uploadError);
+      return res.status(400).json({ message: "File upload failed" });
     }
 
+    // ---------- DATA PROCESSING ----------
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const doctor = new doctorModel({
@@ -144,17 +158,24 @@ const doctorRegister = async (req: Request, res: Response) => {
       signature: signatureUrl,
       email: req.body.email,
       clinic: req.body.clinicId,
-      status: "pending",
+      status: "pending"
     });
 
     await doctor.save();
 
+    // ---------- LINK DOCTOR TO CLINIC ----------
+    if (req.body.clinicId) {
+      await clinicModel.findByIdAndUpdate(req.body.clinicId, {
+        $push: { doctors: doctor._id }
+      });
+    }
+
     return res.status(201).json({
       message: "Doctor registered successfully",
-      doctor,
+      doctor
     });
   } catch (error) {
-    console.error(error);
+    console.error("Doctor registration error:", error);
     return res.status(500).json({ message: "Registration failed" });
   }
 };
