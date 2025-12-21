@@ -29,6 +29,11 @@ export interface IClinic extends Document {
   staffPassword: string;
   staffId:string;
   status:string;
+
+  // Details of the clinic 
+  about:string,
+  mission:string,
+  vision:string,
 }
 
 const clinicSchema = new mongoose.Schema<IClinic>({
@@ -92,7 +97,19 @@ const clinicSchema = new mongoose.Schema<IClinic>({
     type:String,
     default:"pending",
     required:true
+  },
+  about:{
+    type:String,
+  },
+  vision:{
+    type:String,
+    default:"To be the leading neurological center recognized for clinical excellence, research, and transformative patient outcomes."
+  },
+  mission:{
+    type:String,
+    default:"To deliver exceptional neurological care through innovation, compassion, and a patient-centered approach that improves quality of life."
   }
+
 });
 
 const clinicModel = mongoose.model<IClinic>("Clinic", clinicSchema, "Clinic");
