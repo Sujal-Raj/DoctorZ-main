@@ -33,6 +33,12 @@ export interface IDoctor extends Document {
     status: "pending" | "accepted" | "rejected";
     createdAt: Date;
   }[];
+
+  feedback:{
+    userId:Types.ObjectId,
+    comment:string,
+    createdAt:Date,
+  }[];
 }
 
 const doctorSchema = new mongoose.Schema<IDoctor>({
@@ -141,6 +147,15 @@ const doctorSchema = new mongoose.Schema<IDoctor>({
       },
     },
   ],
+
+  //for feedback
+  feedback: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      comment: String,
+      createdAt: { type: Date, default: Date.now }
+    }
+  ]
 });
 
 const doctorModel = mongoose.model<IDoctor>("Doctor", doctorSchema, "Doctor");

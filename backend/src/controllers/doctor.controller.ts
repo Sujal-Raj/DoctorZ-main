@@ -630,6 +630,36 @@ export const rejectDoctorRequest = async (req: Request, res: Response) => {
   }
 };
 
+export const addReview = async (req: Request, res: Response) => {
+  try {
+    const { doctorId } = req.params;
+    const { userId, comment } = req.body; 
+
+    if (!comment) {
+      return res.status(400).json({ message: "Feedback is required" });
+    }
+
+    const doctor = await doctorModel.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    doctor.feedback.push({ userId, comment, createdAt:new Date() });
+    await doctor.save();
+
+    return res.status(200).json({
+      message: "Feedback added successfully",
+      data: doctor
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+
 export default {
   getAllDoctors,
   doctorRegister,

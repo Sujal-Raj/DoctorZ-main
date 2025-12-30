@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import doctorController from "../controllers/doctor.controller.js";
+import doctorController, { addReview } from "../controllers/doctor.controller.js";
 import Router from 'express';
 // import { upload } from "../middlewares/upload.js";
 import { upload } from "../middlewares/multer.js";
@@ -33,5 +33,7 @@ router.get('/total-patients/:doctorId', doctorController.getTotalPatients);
 router.get('/notifications/:doctorId',doctorController.getDoctorNotifications);
 router.post('/notifications/accept',doctorController.acceptDoctorRequest);
 router.post('/notifications/reject',doctorController.rejectDoctorRequest);
+router.post("/review/:doctorId", addReview);
+
 
 export default router;
