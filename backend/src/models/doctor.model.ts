@@ -36,9 +36,13 @@ export interface IDoctor extends Document {
 
   feedback:{
     userId:Types.ObjectId,
+    rating:number,
     comment:string,
     createdAt:Date,
   }[];
+
+  totalRating:number,
+  ratingCount:number
 }
 
 const doctorSchema = new mongoose.Schema<IDoctor>({
@@ -152,10 +156,22 @@ const doctorSchema = new mongoose.Schema<IDoctor>({
   feedback: [
     {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      rating:Number,
       comment: String,
       createdAt: { type: Date, default: Date.now }
     }
-  ]
+  ],
+
+  totalRating :{
+    type:Number,
+    // required:true
+    default:0
+  },
+
+  ratingCount:{
+    type:Number,
+    default:0,
+  }
 });
 
 const doctorModel = mongoose.model<IDoctor>("Doctor", doctorSchema, "Doctor");

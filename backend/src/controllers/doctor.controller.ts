@@ -633,9 +633,9 @@ export const rejectDoctorRequest = async (req: Request, res: Response) => {
 export const addReview = async (req: Request, res: Response) => {
   try {
     const { doctorId } = req.params;
-    const { userId, comment } = req.body; 
+    const { userId, comment,rating } = req.body; 
 
-    if (!comment) {
+    if (!comment || !rating) {
       return res.status(400).json({ message: "Feedback is required" });
     }
 
@@ -645,7 +645,10 @@ export const addReview = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
-    doctor.feedback.push({ userId, comment, createdAt:new Date() });
+    doctor.totalRating += rating;
+    doctor.ratingCount += 1;  
+
+    doctor.feedback.push({ userId, comment,rating, createdAt:new Date() });
     await doctor.save();
 
     return res.status(200).json({
