@@ -24,6 +24,7 @@ export interface IDoctor extends Document {
   photo: string;
   clinic: Types.ObjectId[];
   status?: string;
+  availableOnline:boolean;
 
   notifications: {
     type: string;
@@ -125,6 +126,12 @@ const doctorSchema = new mongoose.Schema<IDoctor>({
     },
   ],
   status: { type: String, default: "pending" },
+  
+  availableOnline:{
+    type:Boolean,
+    default:false,
+    required:true,
+  },
 
   // -----------------------
   // ⭐ Added Notifications
