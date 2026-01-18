@@ -17,6 +17,7 @@ router.post('/register',upload.fields([
   router.get('/search',doctorController.searchDoctors);
 router.get('/allDoctors/:patientId',doctorController.getAllDoctors);
 router.get('/:id',doctorController.getDoctorById);
+router.delete("/delete/medicine-from-list", doctorController.deleteMedicineFromList);
 router.delete('/delete/:id',doctorController.deleteDoctor);
 router.put(
   '/updateDoctor/:id',
@@ -36,7 +37,7 @@ router.post('/notifications/reject',doctorController.rejectDoctorRequest);
 router.post("/review/:doctorId", addReview);
 router.post("/add/medicine-to-list",doctorController.addMedicineToList);
 router.get("/medicine-list/:doctorId", doctorController.getMedicineList);
-router.delete("/delete/medicine-from-list", doctorController.deleteMedicineFromList);
+// router.delete("/delete/medicine-from-list", doctorController.deleteMedicineFromList);
 
 
 export default router;
