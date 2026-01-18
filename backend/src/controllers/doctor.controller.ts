@@ -663,6 +663,121 @@ export const addReview = async (req: Request, res: Response) => {
 };
 
 
+// Controller: doctorController.ts
+const addMedicineToList = async (req: Request, res: Response) => {
+  try {
+    const { doctorId, medicines } = req.body;
+
+    if (!doctorId || !medicines || !Array.isArray(medicines) || medicines.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Doctor ID and medicines array are required" 
+      });
+    }
+
+    // Remove duplicates and empty strings
+    const cleanedMedicines = [...new Set(medicines.filter(m => m.trim() !== ''))];
+
+    const doctor = await doctorModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Doctor not found" 
+      });
+    }
+
+    // Add new medicines to existing list (avoid duplicates)
+    const existingMedicines = doctor.listOfMedicine || [];
+    const updatedMedicines = [...new Set([...existingMedicines, ...cleanedMedicines])];
+
+    doctor.listOfMedicine = updatedMedicines;
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Medicines added successfully",
+      listOfMedicine: doctor.listOfMedicine
+    });
+  } catch (error) {
+    console.error("Error adding medicines:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to add medicines" 
+    });
+  }
+};
+
+const getMedicineList = async (req: Request, res: Response) => {
+  try {
+    const { doctorId } = req.params;
+
+    if (!doctorId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Doctor ID is required" 
+      });
+    }
+
+    const doctor = await doctorModel.findById(doctorId).select('listOfMedicine');
+    if (!doctor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Doctor not found" 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      listOfMedicine: doctor.listOfMedicine || []
+    });
+  } catch (error) {
+    console.error("Error fetching medicines:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch medicines" 
+    });
+  }
+};
+
+const deleteMedicineFromList = async (req: Request, res: Response) => {
+  try {
+    const { doctorId, medicineName } = req.body;
+
+    if (!doctorId || !medicineName) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Doctor ID and medicine name are required" 
+      });
+    }
+
+    const doctor = await doctorModel.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Doctor not found" 
+      });
+    }
+
+    doctor.listOfMedicine = (doctor.listOfMedicine || []).filter(
+      m => m !== medicineName
+    );
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Medicine deleted successfully",
+      listOfMedicine: doctor.listOfMedicine
+    });
+  } catch (error) {
+    console.error("Error deleting medicine:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to delete medicine" 
+    });
+  }
+};
+
+
 export default {
   getAllDoctors,
   doctorRegister,
@@ -678,4 +793,7 @@ export default {
   getDoctorNotifications,
   acceptDoctorRequest,
   rejectDoctorRequest,
+  addMedicineToList,
+  deleteMedicineFromList,
+  getMedicineList,
 };

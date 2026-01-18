@@ -34,6 +34,9 @@ router.get('/notifications/:doctorId',doctorController.getDoctorNotifications);
 router.post('/notifications/accept',doctorController.acceptDoctorRequest);
 router.post('/notifications/reject',doctorController.rejectDoctorRequest);
 router.post("/review/:doctorId", addReview);
+router.post("/add/medicine-to-list",doctorController.addMedicineToList);
+router.get("/medicine-list/:doctorId", doctorController.getMedicineList);
+router.delete("/delete/medicine-from-list", doctorController.deleteMedicineFromList);
 
 
 export default router;

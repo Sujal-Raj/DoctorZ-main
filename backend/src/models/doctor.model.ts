@@ -25,6 +25,7 @@ export interface IDoctor extends Document {
   clinic: Types.ObjectId[];
   status?: string;
   availableOnline:boolean;
+  listOfMedicine:string[],
 
   notifications: {
     type: string;
@@ -131,6 +132,10 @@ const doctorSchema = new mongoose.Schema<IDoctor>({
     type:Boolean,
     default:false,
     required:true,
+  },
+  listOfMedicine:{
+    type:[String],
+    default:[],
   },
 
   // -----------------------
