@@ -134,9 +134,13 @@ const doctorRegister = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "File upload failed" });
     }
 
-    // ---------- DATA PROCESSING ----------
+    // ---------- PROCESS BOOLEAN ----------
+    const availableOnline = req.body.availableOnline === "true";
+
+    // ---------- HASH PASSWORD ----------
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
+    // ---------- CREATE DOCTOR ----------
     const doctor = new doctorModel({
       fullName: req.body.fullName,
       password: hashedPassword,
@@ -157,8 +161,9 @@ const doctorRegister = async (req: Request, res: Response) => {
       photo: photoUrl,
       signature: signatureUrl,
       email: req.body.email,
-      clinic: req.body.clinicId,
-      status: "pending"
+      clinic: req.body.clinicId || null,
+      availableOnline: availableOnline, // ✅ added
+      status: "pending",
     });
 
     await doctor.save();
@@ -166,13 +171,13 @@ const doctorRegister = async (req: Request, res: Response) => {
     // ---------- LINK DOCTOR TO CLINIC ----------
     if (req.body.clinicId) {
       await clinicModel.findByIdAndUpdate(req.body.clinicId, {
-        $push: { doctors: doctor._id }
+        $push: { doctors: doctor._id },
       });
     }
 
     return res.status(201).json({
       message: "Doctor registered successfully",
-      doctor
+      doctor,
     });
   } catch (error) {
     console.error("Doctor registration error:", error);
