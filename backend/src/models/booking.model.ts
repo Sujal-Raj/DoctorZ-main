@@ -23,6 +23,7 @@ export interface IBooking extends Document {
   createdAt: Date;
   updatedAt: Date;
   roomId:string;
+  meetingLink:string;
 }
 
 const bookingSchema = new Schema<IBooking>(
@@ -61,6 +62,10 @@ const bookingSchema = new Schema<IBooking>(
       type: String,
       required: true,
     },
+    meetingLink:{
+      type:String,
+      // required:true,
+    }
   },
   { timestamps: true }
 );
