@@ -462,9 +462,9 @@ const getPackageDetailsById = async (req: Request, res: Response) => {
 // ------------------ BOOK PACKAGE ------------------
 const bookPackage = async (req: Request, res: Response) => {
   try {
-    const { packageId, labId, patientId } = req.body;
+    const { packageId, labId, patientId, bookingDate } = req.body;
 
-    if (!packageId || !labId || !patientId) {
+    if (!packageId || !labId || !patientId || !bookingDate) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -476,7 +476,7 @@ const bookPackage = async (req: Request, res: Response) => {
       labId,
       tests: labPackage.tests,
       userId: patientId,
-      bookingDate: new Date(),
+      bookingDate: bookingDate,
       status: "pending",
     });
     await booking.save();
