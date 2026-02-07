@@ -26,12 +26,112 @@ const transporter = nodemailer.createTransport({
 
 // ---------------- Clinic Registration ----------------
 
-export const clinicRegister = async (req: Request, res: Response) => {
+// export const clinicRegister = async (req: Request, res: Response) => {
   
+//   try {
+//       console.log("🟡 Incoming registration request...");
+//     console.log("➡️ Body:", req.body);
+//     console.log("➡️ Files:", req.files); // 👈 this will tell you if multer is working
+
+//     const {
+//       clinicName,
+//       clinicType,
+//       specialities,
+//       operatingHours,
+//       licenseNo,
+//       ownerAadhar,
+//       ownerPan,
+//       address,     
+//       state,
+//       district,
+//       pincode,
+//       contact,
+//       email,
+//       staffEmail,
+//       staffName,
+//       staffPassword,
+//       staffId,
+//     } = req.body;
+
+//     if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
+//       return res.status(400).json({ message: "All required fields must be filled." });
+//     }
+
+// // Multer provides the uploaded file here
+// const registrationCertPath =
+//   req.files &&
+//   'registrationCert' in req.files &&
+//   Array.isArray((req.files as any)['registrationCert']) &&
+//   (req.files as any)['registrationCert'].length > 0
+//     ? `http://localhost:3000/uploads/${(((req.files as any)['registrationCert'] as Express.Multer.File[])[0])?.filename}`
+//     : undefined;
+
+// const clinicImagePath =
+//   req.files &&
+//   'clinicImage' in req.files &&
+//   Array.isArray((req.files as any)['clinicImage']) &&
+//   (req.files as any)['clinicImage'].length > 0
+//     ? `http://localhost:3000/uploads/${(((req.files as any)['clinicImage'] as Express.Multer.File[])[0])?.filename}`
+//     : undefined;
+
+
+
+//     const clinic = new clinicModel({
+//       clinicName,
+//       clinicType,
+//       specialities,
+//       operatingHours,
+//       clinicLicenseNumber: licenseNo,
+//       aadharNumber: Number(ownerAadhar),
+//       panNumber: ownerPan,
+//       address,
+//       state,
+//       district,
+//       pincode: Number(pincode),
+//       phone: contact,
+//       email,
+//       staffEmail,
+//       staffName,
+//       staffId,
+//       staffPassword: await bcrypt.hash(staffPassword, 10),
+//       registrationCertificate: registrationCertPath,
+//         clinicImage: clinicImagePath,
+//     });
+
+//     await clinic.save();
+
+//     // 📧 Send staff ID via email after saving
+//     try {
+//       await transporter.sendMail({
+//         from: process.env.MAIL_USER,
+//         to: staffEmail,
+//         subject: "Your Staff ID for Clinic Registration",
+//         html: `
+//           <p>Hi <b>${staffName}</b>,</p>
+//           <p>Your staff account has been created successfully!</p>
+//           <p><strong>Staff ID:</strong> ${staffId}</p>
+//           <p>Please use this ID along with your password to login.</p>
+//           <br/>
+//           <p>Thanks,<br/>Clinic Management Team</p>
+//         `,
+//       });
+//       console.log(" Staff ID email sent to:", staffEmail);
+//     } catch (mailErr) {
+//       console.error(" Failed to send email:", mailErr);
+//     }
+
+//     return res.status(201).json({ message: "Clinic Registered", clinic });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "Something went wrong", error });
+//   }
+// };
+
+export const clinicRegister = async (req: Request, res: Response) => {
   try {
-      console.log("🟡 Incoming registration request...");
+    console.log("🟡 Incoming registration request...");
     console.log("➡️ Body:", req.body);
-    console.log("➡️ Files:", req.files); // 👈 this will tell you if multer is working
+    console.log("➡️ Files:", req.files);
 
     const {
       clinicName,
@@ -41,7 +141,7 @@ export const clinicRegister = async (req: Request, res: Response) => {
       licenseNo,
       ownerAadhar,
       ownerPan,
-      address,     
+      address,
       state,
       district,
       pincode,
@@ -54,32 +154,47 @@ export const clinicRegister = async (req: Request, res: Response) => {
     } = req.body;
 
     if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
-      return res.status(400).json({ message: "All required fields must be filled." });
+      return res.status(400).json({
+        message: "All required fields must be filled.",
+      });
     }
 
-// Multer provides the uploaded file here
-const registrationCertPath =
-  req.files &&
-  'registrationCert' in req.files &&
-  Array.isArray((req.files as any)['registrationCert']) &&
-  (req.files as any)['registrationCert'].length > 0
-    ? `http://localhost:3000/uploads/${(((req.files as any)['registrationCert'] as Express.Multer.File[])[0])?.filename}`
-    : undefined;
+    // ✅ Parse specialities (ONLY ONCE)
+    let parsedSpecialities: string[] = [];
 
-const clinicImagePath =
-  req.files &&
-  'clinicImage' in req.files &&
-  Array.isArray((req.files as any)['clinicImage']) &&
-  (req.files as any)['clinicImage'].length > 0
-    ? `http://localhost:3000/uploads/${(((req.files as any)['clinicImage'] as Express.Multer.File[])[0])?.filename}`
-    : undefined;
+    try {
+      parsedSpecialities = JSON.parse(specialities);
+    } catch {
+      parsedSpecialities = [];
+    }
 
+    // ✅ Multer file handling
+    const registrationCertPath =
+      req.files &&
+      "registrationCert" in req.files &&
+      Array.isArray((req.files as any)["registrationCert"]) &&
+      (req.files as any)["registrationCert"].length > 0
+        ? `http://localhost:3000/uploads/${
+            ((req.files as any)["registrationCert"] as Express.Multer.File[])[0]
+              ?.filename
+          }`
+        : undefined;
 
+    const clinicImagePath =
+      req.files &&
+      "clinicImage" in req.files &&
+      Array.isArray((req.files as any)["clinicImage"]) &&
+      (req.files as any)["clinicImage"].length > 0
+        ? `http://localhost:3000/uploads/${
+            ((req.files as any)["clinicImage"] as Express.Multer.File[])[0]
+              ?.filename
+          }`
+        : undefined;
 
     const clinic = new clinicModel({
       clinicName,
       clinicType,
-      specialities,
+      specialities: parsedSpecialities, // ✅ CLEAN ARRAY
       operatingHours,
       clinicLicenseNumber: licenseNo,
       aadharNumber: Number(ownerAadhar),
@@ -95,12 +210,11 @@ const clinicImagePath =
       staffId,
       staffPassword: await bcrypt.hash(staffPassword, 10),
       registrationCertificate: registrationCertPath,
-        clinicImage: clinicImagePath,
+      clinicImage: clinicImagePath,
     });
 
     await clinic.save();
 
-    // 📧 Send staff ID via email after saving
     try {
       await transporter.sendMail({
         from: process.env.MAIL_USER,
@@ -115,15 +229,21 @@ const clinicImagePath =
           <p>Thanks,<br/>Clinic Management Team</p>
         `,
       });
-      console.log(" Staff ID email sent to:", staffEmail);
+      console.log("Staff ID email sent to:", staffEmail);
     } catch (mailErr) {
-      console.error(" Failed to send email:", mailErr);
+      console.error("Failed to send email:", mailErr);
     }
 
-    return res.status(201).json({ message: "Clinic Registered", clinic });
+    return res.status(201).json({
+      message: "Clinic Registered",
+      clinic,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Something went wrong", error });
+    return res.status(500).json({
+      message: "Something went wrong",
+      error,
+    });
   }
 };
 

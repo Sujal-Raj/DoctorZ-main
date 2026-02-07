@@ -168,7 +168,9 @@ export const approveLab = async (
        <p>Your registration has been <b>approved</b>.</p>
        <p><b>Lab ID:</b> ${generatedId}</p>
        <p>Welcome to our platform!</p>`
-    );
+    ).catch((err) => {
+  console.error("Email sending failed:", err);
+});
 
     return res.status(200).json({
       message: "Lab approved ✅ & mail sent successfully",
@@ -203,7 +205,9 @@ export const rejectLab = async (
       "Lab Registration Rejected ❌",
       `<p>Dear ${lab.name},</p>
        <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`
-    );
+    ).catch((err) => {
+  console.error("Email sending failed:", err);
+});
 
     return res.status(200).json({
       message: "Lab rejected ❌ & mail sent successfully",
@@ -332,7 +336,9 @@ export const rejectClinic = async (req: Request, res: Response) => {
       "Clinic Registration Rejected ❌",
       `<p> ${clinic.clinicName},</p>
        <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`
-    );
+    ).catch((err) => {
+  console.error("Email sending failed:", err);
+});
 
     return res.status(200).json({
       message: "Clinic rejected ❌ & mail sent successfully",
