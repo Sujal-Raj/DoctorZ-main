@@ -312,7 +312,7 @@ const getLabPatients = async (req: Request, res: Response) => {
   try {
     const { labId } = req.params;
     const bookings = await LabTestBookingModel.find({ labId })
-      .populate("userId", "fullName email")
+      .populate("userId", "fullName email mobileNumber")
       .lean();
 
     return res.status(200).json({ labPatients: bookings });
