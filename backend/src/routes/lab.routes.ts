@@ -35,6 +35,7 @@ router.post("/packages/book", labController.bookPackage);
 router.get("/packages/:labId", labController.getAllPackagesByLabId);
 router.post("/addPackage", labController.addLabPackage);
 router.get("/getAllPackagesByLabId/:labId", labController.getAllPackagesByLabId);
+router.get("/package-bookings/:patientId", labController.getPatientPackageBookings);
 router.put("/updatePackage/:packageId", labController.updateLabPackage);
 router.delete("/deletePackage/:packageId", labController.deleteLabPackage);
 

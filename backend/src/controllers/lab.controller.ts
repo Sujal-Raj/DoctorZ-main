@@ -489,6 +489,38 @@ const bookPackage = async (req: Request, res: Response) => {
   }
 };
 
+const getPatientPackageBookings = async (req: Request, res: Response) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId) {
+      return res.status(400).json({ message: "Patient ID is required" });
+    }
+
+    const bookings = await PackageBookingModel.find({ userId: patientId })
+      .populate("packageId")
+      .populate("labId")
+      .sort({ bookingDate: -1 }); // latest first
+
+    if (!bookings.length) {
+      return res.status(404).json({ message: "No bookings found for this patient" });
+    }
+
+    return res.status(200).json({
+      message: "Bookings fetched successfully",
+      count: bookings.length,
+      bookings,
+    });
+  } catch (err) {
+    console.error("Error fetching patient bookings:", err);
+    const errorMessage =
+      err instanceof Error ? err.message : "Failed to fetch bookings";
+
+    return res.status(500).json({ message: errorMessage });
+  }
+};
+
+
 // ------------------ EXPORTS ------------------
 export default {
   labRegister,
@@ -509,4 +541,5 @@ export default {
   deleteLabPackage,
   getPackageDetailsById,
   bookPackage,
+  getPatientPackageBookings
 };
