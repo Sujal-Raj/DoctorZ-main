@@ -377,11 +377,15 @@ Your Hospital Admin Team
 const updateDoctorData = async (req: Request, res: Response) => {
   try {
     const doctorId = req.params.id;
-
     const updates: any = { ...req.body };
 
-    //  Block fields that should never be updated directly
-    const blockedFields = ["notifications", "clinic", "DegreeCertificate", "signature", "doctorId"];
+    const blockedFields = [
+      "notifications",
+      "clinic",
+      "DegreeCertificate",
+      "signature",
+      "doctorId",
+    ];
 
     blockedFields.forEach((field) => delete updates[field]);
 
@@ -393,19 +397,27 @@ const updateDoctorData = async (req: Request, res: Response) => {
       }
     });
 
-    // MobileNo should always be string
     if (updates.MobileNo) {
       updates.MobileNo = String(updates.MobileNo);
     }
 
-    // Date field
     if (updates.dob) {
       updates.dob = new Date(updates.dob);
     }
 
-    // photo upload
+    // ✅ FIX: Upload photo to Cloudinary
     if (req.file) {
-      updates.photo = req.file.filename;
+      try {
+        const photoUrl = await uploadToCloudinary(
+          req.file.buffer,
+          "doctors/photos"
+        );
+
+        updates.photo = photoUrl;   // Save Cloudinary URL
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        return res.status(400).json({ message: "Photo upload failed" });
+      }
     }
 
     const updatedDoctor = await doctorModel.findByIdAndUpdate(
@@ -427,6 +439,7 @@ const updateDoctorData = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 

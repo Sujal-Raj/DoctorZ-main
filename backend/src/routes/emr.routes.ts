@@ -4,7 +4,8 @@ import { createEMR } from "../controllers/emr.controller.js";
 import { getEMRByAadhar } from "../controllers/emr.controller.js";
 
 import express from "express";
-import { upload } from "../middlewares/upload.js";
+// import { upload } from "../middlewares/upload.js";
+import { upload } from "../middlewares/multer.js";
 const router = express.Router();
 
 router.post("/createEmr", upload.array("reports"), createEMR);

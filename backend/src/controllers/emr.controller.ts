@@ -1,46 +1,56 @@
 import EMRModel from "../models/emr.model.js";
 import patientModel from "../models/patient.model.js";
 import type { Request, Response } from "express";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 export const createEMR = async (req: Request, res: Response) => {
   try {
     const body = req.body;
+    console.log(req.files);
+
     const files = req.files as Express.Multer.File[];
 
-        console.log("📩 Received EMR body:", body);
+    console.log("📩 Received EMR body:", body);
 
+    const { patientId, doctorId } = body;
 
-    const { patientId, doctorId} = body;
     const patient = await patientModel.findById(patientId);
     if (!patient) {
-      return res.status(400).json({ message: "Patient ID is required" });
+      return res.status(400).json({ message: "Patient not found" });
     }
 
-    // ✅ Safely parse arrays
     const safeParse = (value: any): string[] => {
       try {
         if (!value) return [];
-        if (Array.isArray(value)) return value; // already array
+        if (Array.isArray(value)) return value;
         return JSON.parse(value);
       } catch {
-        return []; // fallback if JSON.parse fails
+        return [];
       }
     };
 
-    // Arrays
-    const allergies = safeParse(body.allergies || "[]");
-    const diseases = safeParse(body.diseases || "[]");
-    const pastSurgeries = safeParse(body.pastSurgeries || "[]");
-    const currentMedications = safeParse(body.currentMedications || "[]");
+    const allergies = safeParse(body.allergies);
+    const diseases = safeParse(body.diseases);
+    const pastSurgeries = safeParse(body.pastSurgeries);
+    const currentMedications = safeParse(body.currentMedications);
 
-    const reportUrls =
-      files?.length > 0
-        ? files.map((f) => `/uploads/${f.filename}`)
-        : [];
+    // ✅ Upload reports to Cloudinary
+    let reportUrls: string[] = [];
 
-    // ✅ Create new EMR
+    if (files && files.length > 0) {
+      reportUrls = await Promise.all(
+        files.map((file) =>
+          uploadToCloudinary(
+            file.buffer,
+            "emr/reports",
+            file.mimetype === "application/pdf" ? "raw" : "image"
+          )
+        )
+      );
+    }
+
     const emr = await EMRModel.create({
-      aadhar: Number(body.aadhar), 
+      aadhar: Number(body.aadhar),
       doctorId,
       allergies,
       diseases,
@@ -48,8 +58,6 @@ export const createEMR = async (req: Request, res: Response) => {
       currentMedications,
       reports: reportUrls,
     });
-
-    
 
     return res.status(201).json({
       message: "EMR created successfully",
@@ -60,6 +68,7 @@ export const createEMR = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error creating EMR" });
   }
 };
+
 
 
 
