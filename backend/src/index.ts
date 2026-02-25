@@ -20,6 +20,7 @@ import labRoutes from "./routes/lab.routes.js";
 import emrRoutes from "./routes/emr.routes.js";
 import messageModel from "./models/message.model.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
+import offlineBookingRoutes from "./routes/offlineBooking.routes.js"
 import { createDefaultAdmin } from "./utils/createDefaultAdmin.js";
 // dotenv.config();
  dbConnect();
@@ -177,6 +178,7 @@ app.use("/api/clinic", clinicRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/availability", timeSlotsRoutes);
 app.use("/api/booking", bookingRoutes);
+app.use("/api/bookOffline",offlineBookingRoutes)
 app.use("/api/lab", labRoutes);
 app.use("/api/emr", emrRoutes);
 // app.use("/api/emr",emrRoutes);
