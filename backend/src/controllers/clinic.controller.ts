@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import type { create } from "domain";
+import receptionModel from "../models/reception.model.js"
 dotenv.config();
 
 console.log("MAIL_USER:", process.env.MAIL_USER);
@@ -127,6 +128,25 @@ const transporter = nodemailer.createTransport({
 //   }
 // };
 
+
+// Generate RCP-XXXXX (5 random digits)
+const generateReceptionistId = (): string => {
+  const randomNumber = Math.floor(10000 + Math.random() * 90000);
+  return `RCP-${randomNumber}`;
+};
+
+// Generate secure random password (8 characters)
+const generatePassword = (length = 8): string => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
+
 export const clinicRegister = async (req: Request, res: Response) => {
   try {
     console.log("🟡 Incoming registration request...");
@@ -158,6 +178,15 @@ export const clinicRegister = async (req: Request, res: Response) => {
         message: "All required fields must be filled.",
       });
     }
+
+    // 🔐 Generate Receptionist Credentials
+const receptionistId = generateReceptionistId();
+const receptionistPassword = generatePassword(10);
+
+// Hash password
+const hashedReceptionistPassword = await bcrypt.hash(receptionistPassword, 10);
+
+    console.log("Reception details :",receptionistId , receptionistPassword)
 
     // ✅ Parse specialities (ONLY ONCE)
     let parsedSpecialities: string[] = [];
@@ -215,6 +244,13 @@ export const clinicRegister = async (req: Request, res: Response) => {
 
     await clinic.save();
 
+
+    await receptionModel.create({
+  receptionId: receptionistId,
+  password: hashedReceptionistPassword,
+  clinic: clinic._id,
+});
+
     try {
       await transporter.sendMail({
         from: process.env.MAIL_USER,
@@ -226,6 +262,14 @@ export const clinicRegister = async (req: Request, res: Response) => {
           <p><strong>Staff ID:</strong> ${staffId}</p>
           <p>Please use this ID along with your password to login.</p>
           <br/>
+
+           <h3>Receptionist Login Credentials:</h3>
+    <p><strong>ID:</strong> ${receptionistId}</p>
+    <p><strong>Password:</strong> ${receptionistPassword}</p>
+
+    <p>Please change the password after first login.</p>
+    <br/>
+    
           <p>Thanks,<br/>Clinic Management Team</p>
         `,
       });
