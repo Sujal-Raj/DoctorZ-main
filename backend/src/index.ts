@@ -183,6 +183,7 @@ app.use("/api/lab", labRoutes);
 app.use("/api/emr", emrRoutes);
 // app.use("/api/emr",emrRoutes);
 app.use("/api/prescription",prescriptionRoutes);
+app.use("/api/receptionist",receptionRoutes);
 
 // app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
