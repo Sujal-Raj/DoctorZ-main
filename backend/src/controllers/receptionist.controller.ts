@@ -3,6 +3,7 @@ import receptionModel from "../models/reception.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import patientModel from "../models/patient.model.js";
+import clinicModel from "../models/clinic.model.js";
 
 export const receptionistLogin = async (req: Request, res: Response) => {
   try {
@@ -107,5 +108,29 @@ export const walkInRegisteration = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: "Something went wrong",
     });
+  }
+};
+
+
+export const getClinicDoctorsForReception = async (req: any, res: Response) => {
+  try {
+    const clinicId = req.user.clinic;
+
+    const clinic = await clinicModel
+      .findById(clinicId)
+      .populate("doctors");
+
+    if (!clinic) {
+      return res.status(404).json({ message: "Clinic not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      doctors: clinic.doctors,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
