@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import receptionModel from "../models/reception.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import patientModel from "../models/patient.model.js";
 
 export const receptionistLogin = async (req: Request, res: Response) => {
   try {
@@ -61,6 +62,50 @@ export const receptionistLogin = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Server error",
+    });
+  }
+};
+
+export const walkInRegisteration = async (req: Request, res: Response) => {
+  try {
+    const { fullName, gender, dob, mobileNumber, aadhar } = req.body;
+
+    // ✅ Required validation (minimal fields)
+    if (!fullName || !gender || !dob || !mobileNumber || !aadhar) {
+      return res.status(400).json({
+        message: "Required fields missing",
+      });
+    }
+
+    // ✅ Check if Aadhar already exists
+    const existingAadhar = await patientModel.findOne({
+      aadhar: String(aadhar),
+    });
+
+    if (existingAadhar) {
+      return res.status(400).json({
+        message: "Patient with this Aadhar already exists",
+      });
+    }
+
+    // ✅ Create walk-in patient (no email/password)
+    const patient = await patientModel.create({
+      fullName,
+      gender,
+      dob,
+      mobileNumber,
+      aadhar,
+      // registrationType: "walk-in", // optional flag if needed
+    });
+
+    return res.status(201).json({
+      message: "Walk-in patient registered successfully",
+      patient,
+    });
+  } catch (error) {
+    console.log("Walk-in Registration Error:", error);
+    return res.status(500).json({
+      message: "Something went wrong",
     });
   }
 };

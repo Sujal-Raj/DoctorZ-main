@@ -39,11 +39,11 @@ const patientSchema = new mongoose.Schema<IPatient>(
     },
     email: {
       type: String,
-      required: true,
+      // required: true,
     },
     password: {
       type: String,
-      required: true,
+      // required: true,
     },
     profilePhoto: {
       type: String,
@@ -54,7 +54,7 @@ const patientSchema = new mongoose.Schema<IPatient>(
     },
     aadhar: {
       type: String,
-      unique: true, // ✅ UNIQUE AADHAR
+      unique: true, 
       trim: true,
       required  : true,
       match: [/^[0-9]{12}$/, "Invalid aadhar number"],
@@ -62,7 +62,7 @@ const patientSchema = new mongoose.Schema<IPatient>(
     address: {
       city: {
         type: String,
-        require: true,
+        // require: true,
       },
       pincode: {
         type: Number,
