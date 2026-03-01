@@ -22,6 +22,7 @@ import messageModel from "./models/message.model.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
 import offlineBookingRoutes from "./routes/offlineBooking.routes.js"
 import { createDefaultAdmin } from "./utils/createDefaultAdmin.js";
+import receptionRoutes from "./routes/receptionist.route.js"
 // dotenv.config();
  dbConnect();
 // const PORT = 3000;
