@@ -856,3 +856,29 @@ export const getClinicDoctorStatus = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+export const getClinic = async(req:Request,res:Response)=>{
+  try {
+    const {clinicId} = req.query;
+
+    if(!clinicId){
+      res.status(404).json({
+        message:"Clinic ID is not found."
+      })
+    }
+
+    const clinic = await clinicModel.findById(clinicId);
+
+    res.status(200).json({
+      clinic:clinic,
+      message:"Clinic found sucessfully"
+    })
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message:error,
+    })
+    
+  }
+}

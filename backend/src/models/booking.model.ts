@@ -24,13 +24,19 @@ export interface IBooking extends Document {
   updatedAt: Date;
   roomId:string;
   meetingLink:string;
+  bookedBy:string;
 }
 
 const bookingSchema = new Schema<IBooking>(
   {
     doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
 
-    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: false },
+    bookedBy: {
+  type: String,
+  enum: ["patient", "receptionist"],
+  required: true,
+},
 
     patient: {
       type: Object,

@@ -4,6 +4,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import patientModel from "../models/patient.model.js";
 import clinicModel from "../models/clinic.model.js";
+import Booking from "../models/booking.model.js";
+import offlineBooking from "../models/OfflineBookingModel.js";
+import { LuBookUp } from "react-icons/lu";
 
 export const receptionistLogin = async (req: Request, res: Response) => {
   try {
@@ -134,3 +137,93 @@ export const getClinicDoctorsForReception = async (req: any, res: Response) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+export const getAllClinicPatients = async (req: any, res: Response) => {
+  try {
+    const clinicId = req.user.clinic;
+
+    // 1️⃣ Find clinic with doctors
+    const clinic = await clinicModel.findById(clinicId).select("doctors");
+
+    if (!clinic) {
+      return res.status(404).json({
+        success: false,
+        message: "Clinic not found",
+      });
+    }
+
+    const doctorIds = clinic.doctors;
+
+    if (!doctorIds || doctorIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No doctors found in this clinic",
+        patients: [],
+      });
+    }
+
+    // 2️⃣ Find all bookings of those doctors
+    const bookings = await offlineBooking.find({
+      doctorId: { $in: doctorIds },
+    })
+      .populate("doctorId", "fullName specialization")
+      .populate("userId","fullName mobileNumber")
+      .sort({ createdAt: -1 });
+
+      // console.log("bookings",bookings);
+
+    // 3️⃣ Extract patient details
+    const patients = bookings.map((booking: any) => ({
+      bookingId: booking._id,
+      doctor: booking.doctorId,
+      patient: booking.patient,
+      bookedBy: booking.bookedBy,
+      fees: booking.fees,
+      status: booking.status,
+      date: booking.date,
+      mobileNumber:booking.userId?.mobileNumber || booking.mobileNumber || null,
+      tokenNumber:booking.tokenNumber,
+    }));
+
+    console.log(patients)
+
+    return res.status(200).json({
+      success: true,
+      totalPatients: patients.length,
+      patients,
+    });
+  } catch (error) {
+    console.error("Get Clinic Patients Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+
+export const getProfile = async(req:any,res:Response)=>{
+  try {
+    const {receptionistId} = req.query;
+    console.log(receptionistId);
+
+    if(!receptionistId){
+      res.status(404).json({
+        message:"Receptionist id is not found"
+      })
+    }
+
+    const reception = await receptionModel.findById(receptionistId);
+
+    res.status(200).json({
+      reception,
+      message:"Fetched sucessfully"
+    })
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error:error
+    })
+    
+  }
+}

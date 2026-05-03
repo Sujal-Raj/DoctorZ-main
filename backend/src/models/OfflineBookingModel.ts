@@ -22,13 +22,19 @@ export interface IBooking extends Document {
   updatedAt: Date;
   roomId: string;
   meetingLink: string;
+  bookedBy:string;
 }
 
 const offlineBookingSchema = new mongoose.Schema(
   {
     doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
 
-    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: false,default:null },
+        bookedBy: {
+  type: String,
+  enum: ["patient", "receptionist"],
+  required: true,
+},
     patient: {
       type: Object,
       required: true,
@@ -50,6 +56,11 @@ const offlineBookingSchema = new mongoose.Schema(
       default: "pending",
       required: true,
     },
+    paid:{
+      type:Boolean,
+      require:true,
+      default:false,
+    }
   },
   { timestamps: true },
 );
