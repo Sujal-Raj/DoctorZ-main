@@ -23,6 +23,9 @@ import prescriptionRoutes from "./routes/prescription.routes.js";
 import offlineBookingRoutes from "./routes/offlineBooking.routes.js"
 import { createDefaultAdmin } from "./utils/createDefaultAdmin.js";
 import receptionRoutes from "./routes/receptionist.route.js"
+import inventoryRouter from "./routes/inventory.routes.js";
+import expenseRoutes from "./routes/expense.routes.js"
+
 // dotenv.config();
  dbConnect();
 // const PORT = 3000;
@@ -181,6 +184,8 @@ app.use("/api/availability", timeSlotsRoutes);
 app.use("/api/booking", bookingRoutes);
 app.use("/api/bookOffline",offlineBookingRoutes)
 app.use("/api/lab", labRoutes);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/expense", expenseRoutes);
 app.use("/api/emr", emrRoutes);
 // app.use("/api/emr",emrRoutes);
 app.use("/api/prescription",prescriptionRoutes);
