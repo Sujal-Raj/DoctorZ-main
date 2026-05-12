@@ -23,7 +23,7 @@ export const addPrescription = async (req: Request, res: Response) => {
       gender,
     } = req.body;
 
-    if (!doctorId || !patientAadhar || !diagnosis || !medicines) {
+    if (!doctorId || !diagnosis || !medicines) {
       return res.status(400).json({
         message: "doctorId, patientAadhar, diagnosis & medicines are required",
       });
@@ -31,7 +31,7 @@ export const addPrescription = async (req: Request, res: Response) => {
 
     const prescription = await PrescriptionModel.create({
       doctorId,
-      patientAadhar,
+      // patientAadhar,
       bookingId,
       diagnosis,
       symptoms: symptoms || [],
