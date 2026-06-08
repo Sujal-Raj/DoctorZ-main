@@ -217,6 +217,7 @@ const PrescriptionForm = () => {
       gender,
     };
 
+    console.log(bookingId,payload)
     try {
       await api.post(`/api/prescription/addPrescription/${bookingId}`, payload);
 

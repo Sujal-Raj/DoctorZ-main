@@ -592,6 +592,7 @@ export const getDoctorNotifications = async (req: Request, res: Response) => {
   }
 };
 
+
 export const acceptDoctorRequest = async (req: Request, res: Response) => {
   try {
     const { doctorId, notificationId, clinicId } = req.body;
@@ -599,7 +600,6 @@ export const acceptDoctorRequest = async (req: Request, res: Response) => {
     const doctor = await doctorModel.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    // update status
     const notif = doctor.notifications.find(
       (n: any) => n._id.toString() === notificationId
     );
@@ -608,18 +608,37 @@ export const acceptDoctorRequest = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Notification not found" });
     }
 
+    // ✅ Update notification
     notif.status = "accepted";
+    doctor.markModified("notifications");
 
-    // add clinic to doctor profile
-    if (!doctor.clinic.includes(clinicId)) {
+    // ✅ Add clinic to doctor
+    doctor.clinic = doctor.clinic || [];
+    if (!doctor.clinic.some(id => id.toString() === clinicId)) {
       doctor.clinic.push(clinicId);
     }
 
     await doctor.save();
 
+    // ✅ IMPORTANT: Update clinic with doctor
+    const clinic = await clinicModel.findById(clinicId);
+    if (!clinic) {
+      return res.status(404).json({ message: "Clinic not found" });
+    }
+
+    clinic.doctors = clinic.doctors || [];
+
+    if (!clinic.doctors.some(id => id.toString() === doctorId)) {
+      clinic.doctors.push(doctorId);
+    }
+
+    await clinic.save();
+
     res.json({ message: "Request accepted" });
+
   } catch (error) {
-    res.json({ message: "Error accepting request" });
+    console.error(error);
+    res.status(500).json({ message: "Error accepting request" });
   }
 };
 

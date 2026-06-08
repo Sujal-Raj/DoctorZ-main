@@ -58,6 +58,8 @@ const patientSchema = new mongoose.Schema<IPatient>(
       // trim: true,
       // required  : true,
       // match: [/^[0-9]{12}$/, "Invalid aadhar number"],
+       unique: true,
+  sparse: true,
     },
     address: {
       city: {

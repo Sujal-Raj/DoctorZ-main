@@ -34,7 +34,7 @@ const PrescriptionSchema=new Schema<IPrescription>({
   },
   patientAadhar:{
     type:String,
-    required:true
+    // required:true
 
   },
   bookingId:{

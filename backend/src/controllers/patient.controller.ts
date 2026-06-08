@@ -11,6 +11,7 @@ import Booking from "../models/booking.model.js";
 import { FaV } from "react-icons/fa6";
 import PrescriptionModel from "../models/prescription.model.js";
 import { LabModel, LabTestBookingModel } from "../models/lab.model.js";
+import offlineBooking from "../models/OfflineBookingModel.js";
 
 const patientRegister = async (req: Request, res: Response) => {
   try {
@@ -68,12 +69,12 @@ const patientRegister = async (req: Request, res: Response) => {
     }
 
     // Check if Aadhar exists
-    const existingAadhar = await patientModel.findOne({ aadhar:String(aadhar) });
-    if (existingAadhar) {
-      return res
-        .status(400)
-        .json({ message: "Aadhar number already registered" });
-    }
+    // const existingAadhar = await patientModel.findOne({ aadhar:String(aadhar) });
+    // if (existingAadhar) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Aadhar number already registered" });
+    // }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -381,33 +382,50 @@ const getBookedDoctor = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        // Sirf pending bookings fetch karenge
+        // Fetch pending online bookings
         const bookings = await Booking.find({ 
             userId: id, 
-            status: 'pending' // yaha sirf pending bookings
+            status: 'pending'
         }).populate('doctorId'); 
-        console.log("here",bookings)
-      
 
-        // Agar koi bookings milti hain
-        if (bookings.length === 0) {
-            return res.status(404).json({
-                message: "No pending bookings found"
-            });
-        }
+        // Fetch pending offline bookings
+        const offlineBookings = await offlineBooking.find({
+            userId: id,
+            status: 'pending',
+        }).populate('doctorId'); 
 
-        // Response me doctor details aur booking date bhejna
-        const result = bookings.map(b => ({
+        // Map online bookings
+        const onlineResult = bookings.map(b => ({
+            type: 'online',
             doctor: b.doctorId,
-            bookingDate: b.dateTime,  
-            roomId:b.roomId,
-            meetingLink:b.meetingLink,            
+            bookingDate: b.dateTime,
+            slot: b.slot,
+            roomId: b.roomId,
+            meetingLink: b.meetingLink,
+            fees: b.fees,
+            status: b.status,
+        }));
+
+        // Map offline bookings
+        const offlineResult = offlineBookings.map(b => ({
+            type: 'offline',
+            doctor: b.doctorId,
+            bookingDate: b.date,
+            slot: null,
+            tokenNumber: b.tokenNumber,
+            fees: b.fees,
+            status: b.status,
+            paid: b.paid,
         }));
 
         return res.status(200).json({
             message: "Pending bookings fetched successfully",
-            data: result
+            data: {
+                online: onlineResult,
+                offline: offlineResult,
+            }
         });
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({ 

@@ -36,6 +36,7 @@ const bookingSchema = new Schema<IBooking>(
   type: String,
   enum: ["patient", "receptionist"],
   required: true,
+  default:"patient"
 },
 
     patient: {
