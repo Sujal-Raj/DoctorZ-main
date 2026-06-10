@@ -1,5 +1,5 @@
 import express from "express";
-import { createTimeSlot, updateSlot ,editTimeSlot, getDoctorTimeSlots, getPatientSlots } from "../controllers/timeSlots.controller.js";
+import { createTimeSlot, updateSlot ,editTimeSlot, getDoctorTimeSlots, getPatientSlots, deleteTimeSlot } from "../controllers/timeSlots.controller.js";
 
 const router = express.Router();
 router.post("/createTimeSlot", createTimeSlot);
@@ -19,5 +19,6 @@ router.get(
 router.put("/editTimeSlot", editTimeSlot);
 router.patch("/updateSlot/:id", updateSlot);
 // router.get("/getActiveSlots/:doctorId", getActiveSlots);
+router.get("/deleteTimeSlot/:slotId",deleteTimeSlot)
 
 export default router;
