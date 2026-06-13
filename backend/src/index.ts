@@ -39,7 +39,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: "https://doctor-z-main-eight.vercel.app", // your frontend origin in development
+  origin: ["http://localhost:5173", "http://localhost:5174","https://doctor-z-inhouse-frontend.vercel.app/"], // your frontend origin in development
   credentials: true
 }));
 
