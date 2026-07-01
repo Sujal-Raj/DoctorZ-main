@@ -179,6 +179,7 @@ export const getAllClinicPatients = async (req: any, res: Response) => {
       patient: booking.patient,
       bookedBy: booking.bookedBy,
       fees: booking.fees,
+      paid: booking.paid,
       status: booking.status,
       date: booking.date,
       mobileNumber:booking.userId?.mobileNumber || booking.mobileNumber || null,
@@ -232,7 +233,7 @@ export const getProfile = async(req:any,res:Response)=>{
 export const updateClinicPatient = async (req: Request, res: Response) => {
   try {
     const { bookingId } = req.params;
-    const { patient, mobileNumber, fees, status } = req.body;
+    const { patient, mobileNumber, fees, status,paid } = req.body;
 
     if (!bookingId) {
       return res.status(400).json({ message: "Booking ID is required" });
@@ -245,6 +246,7 @@ export const updateClinicPatient = async (req: Request, res: Response) => {
         ...(mobileNumber !== undefined && { mobileNumber }),
         ...(fees !== undefined && { fees }),
         ...(status !== undefined && { status }),
+        ...(paid !== undefined && { paid }),
       },
       { new: true, runValidators: true }
     );
