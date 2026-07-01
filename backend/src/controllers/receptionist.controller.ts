@@ -227,3 +227,38 @@ export const getProfile = async(req:any,res:Response)=>{
     
   }
 }
+
+
+export const updateClinicPatient = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+    const { patient, mobileNumber, fees, status } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking ID is required" });
+    }
+
+    const updatedPatient = await offlineBooking.findByIdAndUpdate(
+      bookingId,
+      {
+        ...(patient !== undefined && { patient }),
+        ...(mobileNumber !== undefined && { mobileNumber }),
+        ...(fees !== undefined && { fees }),
+        ...(status !== undefined && { status }),
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPatient) {
+      return res.status(404).json({ message: "Patient booking not found" });
+    }
+
+    return res.status(200).json({
+      message: "Patient updated successfully",
+      patient: updatedPatient,
+    });
+  } catch (error) {
+    console.error("updateClinicPatient error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

@@ -1,6 +1,6 @@
 import { Express } from "express";
 import express from "express"
-import { getAllClinicPatients, getClinicDoctorsForReception, getProfile, receptionistLogin, walkInRegisteration } from "../controllers/receptionist.controller.js";
+import { getAllClinicPatients, getClinicDoctorsForReception, getProfile, receptionistLogin, updateClinicPatient, walkInRegisteration } from "../controllers/receptionist.controller.js";
 import { receptionistVerifyToken } from "../middlewares/auth.js";
 import { bookToken } from "../controllers/offlineBooking.controller.js";
 
@@ -23,5 +23,11 @@ router.get(
 );
 
 router.get("/profile",receptionistVerifyToken,getProfile)
+
+router.put(
+  "/clinic-patients/:bookingId",
+  receptionistVerifyToken,
+  updateClinicPatient
+);
 
 export default router;;
