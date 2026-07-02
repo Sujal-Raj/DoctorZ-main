@@ -18,6 +18,10 @@ import labRoutes from "./routes/lab.routes.js";
 import emrRoutes from "./routes/emr.routes.js";
 import messageModel from "./models/message.model.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
+import offlineBookingRoutes from "./routes/offlineBooking.routes.js";
+import receptionRoutes from "./routes/receptionist.route.js";
+import inventoryRouter from "./routes/inventory.routes.js";
+import expenseRoutes from "./routes/expense.routes.js";
 // dotenv.config();
 dbConnect();
 // const PORT = 3000;
@@ -27,7 +31,7 @@ dbConnect();
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors({
-    origin: "http://localhost:5173", // your frontend origin in development
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://doctor-z-inhouse-frontend.vercel.app", "https://doctor-z-main-frontend.vercel.app", "https://doctor-z-fronted.vercel.app"], // your frontend origin in development
     credentials: true
 }));
 app.use(express.json());
@@ -40,7 +44,7 @@ const server = createServer(app);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 const io = new Server(server, {
     cors: {
-        origin: "https://doctor-z-main-eight.vercel.app/", // restrict in production to your frontend URL
+        origin: "http://localhost:5173", // restrict in production to your frontend URL
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -152,10 +156,14 @@ app.use("/api/clinic", clinicRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/availability", timeSlotsRoutes);
 app.use("/api/booking", bookingRoutes);
+app.use("/api/bookOffline", offlineBookingRoutes);
 app.use("/api/lab", labRoutes);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/expense", expenseRoutes);
 app.use("/api/emr", emrRoutes);
 // app.use("/api/emr",emrRoutes);
 app.use("/api/prescription", prescriptionRoutes);
+app.use("/api/receptionist", receptionRoutes);
 // app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 // app.get(/.*/, (req, res) => {
 //   res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));

@@ -1,37 +1,38 @@
 import EMRModel from "../models/emr.model.js";
 import patientModel from "../models/patient.model.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 export const createEMR = async (req, res) => {
     try {
         const body = req.body;
+        console.log(req.files);
         const files = req.files;
         console.log("📩 Received EMR body:", body);
         const { patientId, doctorId } = body;
         const patient = await patientModel.findById(patientId);
         if (!patient) {
-            return res.status(400).json({ message: "Patient ID is required" });
+            return res.status(400).json({ message: "Patient not found" });
         }
-        // ✅ Safely parse arrays
         const safeParse = (value) => {
             try {
                 if (!value)
                     return [];
                 if (Array.isArray(value))
-                    return value; // already array
+                    return value;
                 return JSON.parse(value);
             }
             catch {
-                return []; // fallback if JSON.parse fails
+                return [];
             }
         };
-        // Arrays
-        const allergies = safeParse(body.allergies || "[]");
-        const diseases = safeParse(body.diseases || "[]");
-        const pastSurgeries = safeParse(body.pastSurgeries || "[]");
-        const currentMedications = safeParse(body.currentMedications || "[]");
-        const reportUrls = files?.length > 0
-            ? files.map((f) => `/uploads/${f.filename}`)
-            : [];
-        // ✅ Create new EMR
+        const allergies = safeParse(body.allergies);
+        const diseases = safeParse(body.diseases);
+        const pastSurgeries = safeParse(body.pastSurgeries);
+        const currentMedications = safeParse(body.currentMedications);
+        // ✅ Upload reports to Cloudinary
+        let reportUrls = [];
+        if (files && files.length > 0) {
+            reportUrls = await Promise.all(files.map((file) => uploadToCloudinary(file.buffer, "emr/reports", file.mimetype === "application/pdf" ? "raw" : "image")));
+        }
         const emr = await EMRModel.create({
             aadhar: Number(body.aadhar),
             doctorId,

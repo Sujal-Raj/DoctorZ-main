@@ -1,7 +1,8 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IInventory extends Document {
-  clinicId: mongoose.Types.ObjectId;
+  clinicId?: mongoose.Types.ObjectId;
+  labId?: mongoose.Types.ObjectId;
 
   itemName: string;
 
@@ -29,7 +30,12 @@ const inventorySchema = new mongoose.Schema<IInventory>(
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Clinic",
-      required: true,
+      required: false,
+    },
+    labId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lab",
+      required: false,
     },
 
     itemName: {

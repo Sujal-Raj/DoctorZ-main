@@ -43,7 +43,16 @@ const LabTestBookingSchema = new Schema({
         enum: ["pending", "completed", "cancelled"],
         default: "pending",
     },
-    bookedAt: { type: Date, default: Date.now },
+    bookingDate: { type: Date, required: true }, // <-- now required
+    bookedAt: { type: Date, default: Date.now }, // creation timestamp
+    bookedBy: {
+        type: String,
+        enum: ["patient", "lab"],
+        default: "patient",
+    },
+    reportUrl: {
+        type: String,
+    },
 }, { timestamps: true });
 export const LabTestBookingModel = mongoose.model("LabTestBooking", LabTestBookingSchema);
 const LabPackageSchema = new Schema({
@@ -65,6 +74,14 @@ const PackageBookingSchema = new Schema({
         type: String,
         enum: ["pending", "completed", "cancelled"],
         default: "pending",
+    },
+    bookedBy: {
+        type: String,
+        enum: ["patient", "lab"],
+        default: "patient",
+    },
+    reportUrl: {
+        type: String,
     },
 }, { timestamps: true });
 export const PackageBookingModel = mongoose.model("PackageBooking", PackageBookingSchema);

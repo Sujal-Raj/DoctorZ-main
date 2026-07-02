@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import inventoryModel from "../models/inventory.model.js";
 import clinicModel from "../models/clinic.model.js";
+import { LabModel } from "../models/lab.model.js";
+import expenseModel from "../models/expense.model.js";
 
 export const addInventoryItem = async (
   req: Request,
@@ -9,6 +11,7 @@ export const addInventoryItem = async (
   try {
     const {
       clinicId,
+      labId,
       itemName,
       category,
       quantity,
@@ -21,8 +24,14 @@ export const addInventoryItem = async (
     } = req.body;
 
     // Validation
+    if (!clinicId && !labId) {
+      return res.status(400).json({
+        success: false,
+        message: "Either clinicId or labId must be provided",
+      });
+    }
+
     if (
-      !clinicId ||
       !itemName ||
       !category ||
       quantity === undefined ||
@@ -35,14 +44,26 @@ export const addInventoryItem = async (
       });
     }
 
-    // Check clinic exists
-    const clinicExists = await clinicModel.findById(clinicId);
+    // Check clinic exists if clinicId is passed
+    if (clinicId) {
+      const clinicExists = await clinicModel.findById(clinicId);
+      if (!clinicExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Clinic not found",
+        });
+      }
+    }
 
-    if (!clinicExists) {
-      return res.status(404).json({
-        success: false,
-        message: "Clinic not found",
-      });
+    // Check lab exists if labId is passed
+    if (labId) {
+      const labExists = await LabModel.findById(labId);
+      if (!labExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Lab not found",
+        });
+      }
     }
 
     // Auto stock status
@@ -56,7 +77,8 @@ export const addInventoryItem = async (
 
     // Create inventory item
     const newItem = new inventoryModel({
-      clinicId,
+      clinicId: clinicId || undefined,
+      labId: labId || undefined,
       itemName,
       category,
       quantity,
@@ -70,6 +92,30 @@ export const addInventoryItem = async (
     });
 
     await newItem.save();
+
+    // If it's a lab stock purchase, automatically create a matching expense entry
+    if (labId) {
+      let expenseCategory: "Medicine Purchase" | "Equipment" | "Miscellaneous" = "Miscellaneous";
+      if (category === "Medicine") {
+        expenseCategory = "Medicine Purchase";
+      } else if (category === "Equipment") {
+        expenseCategory = "Equipment";
+      }
+
+      const totalAmount = quantity * price;
+
+      const autoExpense = new expenseModel({
+        labId,
+        title: `Inventory Purchase: ${itemName}`,
+        category: expenseCategory,
+        amount: totalAmount,
+        paymentMethod: "Cash",
+        expenseDate: new Date(),
+        description: `Auto-recorded expense from adding inventory item: ${itemName} (${quantity} ${unit} @ ₹${price} each). Supplier: ${supplier || "Unknown"}`,
+        addedBy: "System (Inventory Sync)"
+      });
+      await autoExpense.save();
+    }
 
     return res.status(201).json({
       success: true,
@@ -92,21 +138,38 @@ export const getInventoryItems = async (
   res: Response
 ) => {
   try {
-    const { clinicId } = req.params;
+    const { clinicId, labId } = req.params;
 
-    // Check clinic exists
-    const clinicExists = await clinicModel.findById(clinicId);
-
-    if (!clinicExists) {
-      return res.status(404).json({
+    if (!clinicId && !labId) {
+      return res.status(400).json({
         success: false,
-        message: "Clinic not found",
+        message: "Either clinicId or labId must be provided in parameters",
       });
     }
 
-    const inventoryItems = await inventoryModel.find({
-      clinicId,
-    });
+    let query: any = {};
+
+    if (clinicId) {
+      const clinicExists = await clinicModel.findById(clinicId);
+      if (!clinicExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Clinic not found",
+        });
+      }
+      query.clinicId = clinicId;
+    } else if (labId) {
+      const labExists = await LabModel.findById(labId);
+      if (!labExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Lab not found",
+        });
+      }
+      query.labId = labId;
+    }
+
+    const inventoryItems = await inventoryModel.find(query);
 
     return res.status(200).json({
       success: true,

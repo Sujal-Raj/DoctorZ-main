@@ -8,14 +8,14 @@ export const addPrescription = async (req, res) => {
         console.log(req.body);
         const { bookingId } = req.params;
         const { patientAadhar, doctorId, diagnosis, symptoms, medicines, recommendedTests, notes, name, gender, } = req.body;
-        if (!doctorId || !patientAadhar || !diagnosis || !medicines) {
+        if (!doctorId || !diagnosis || !medicines) {
             return res.status(400).json({
                 message: "doctorId, patientAadhar, diagnosis & medicines are required",
             });
         }
         const prescription = await PrescriptionModel.create({
             doctorId,
-            patientAadhar,
+            // patientAadhar,
             bookingId,
             diagnosis,
             symptoms: symptoms || [],

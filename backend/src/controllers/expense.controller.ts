@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import expenseModel from "../models/expense.model.js";
 import clinicModel from "../models/clinic.model.js";
+import { LabModel } from "../models/lab.model.js";
 
 export const addExpense = async (
   req: Request,
@@ -9,6 +10,7 @@ export const addExpense = async (
   try {
     const {
       clinicId,
+      labId,
       title,
       category,
       amount,
@@ -20,8 +22,14 @@ export const addExpense = async (
     } = req.body;
 
     // Validation
+    if (!clinicId && !labId) {
+      return res.status(400).json({
+        success: false,
+        message: "Either clinicId or labId must be provided",
+      });
+    }
+
     if (
-      !clinicId ||
       !title ||
       !category ||
       amount === undefined ||
@@ -33,19 +41,32 @@ export const addExpense = async (
       });
     }
 
-    // Check clinic exists
-    const clinicExists = await clinicModel.findById(clinicId);
+    // Check clinic exists if clinicId is passed
+    if (clinicId) {
+      const clinicExists = await clinicModel.findById(clinicId);
+      if (!clinicExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Clinic not found",
+        });
+      }
+    }
 
-    if (!clinicExists) {
-      return res.status(404).json({
-        success: false,
-        message: "Clinic not found",
-      });
+    // Check lab exists if labId is passed
+    if (labId) {
+      const labExists = await LabModel.findById(labId);
+      if (!labExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Lab not found",
+        });
+      }
     }
 
     // Create expense
     const newExpense = new expenseModel({
-      clinicId,
+      clinicId: clinicId || undefined,
+      labId: labId || undefined,
       title,
       category,
       amount,
@@ -79,21 +100,38 @@ export const getExpenses = async (
   res: Response
 ) => {
   try {
-    const { clinicId } = req.params;
+    const { clinicId, labId } = req.params;
 
-    // Check clinic exists
-    const clinicExists = await clinicModel.findById(clinicId);
-
-    if (!clinicExists) {
-      return res.status(404).json({
+    if (!clinicId && !labId) {
+      return res.status(400).json({
         success: false,
-        message: "Clinic not found",
+        message: "Either clinicId or labId must be provided in parameters",
       });
     }
 
-    const expenses = await expenseModel.find({
-      clinicId,
-    }).sort({ createdAt: -1 });
+    let query: any = {};
+
+    if (clinicId) {
+      const clinicExists = await clinicModel.findById(clinicId);
+      if (!clinicExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Clinic not found",
+        });
+      }
+      query.clinicId = clinicId;
+    } else if (labId) {
+      const labExists = await LabModel.findById(labId);
+      if (!labExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Lab not found",
+        });
+      }
+      query.labId = labId;
+    }
+
+    const expenses = await expenseModel.find(query).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,

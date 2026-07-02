@@ -12,6 +12,8 @@ import {
   LabPackageModel,
   PackageBookingModel,
 } from "../models/lab.model.js";
+import patientModel from "../models/patient.model.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 // ------------------ LAB REGISTER ------------------
 const labRegister = async (req: Request, res: Response) => {
@@ -311,13 +313,36 @@ const deleteLabTest = async (req: Request, res: Response) => {
 const getLabPatients = async (req: Request, res: Response) => {
   try {
     const { labId } = req.params;
-    const bookings = await LabTestBookingModel.find({ labId })
+
+    const testBookings = await LabTestBookingModel.find({ labId })
       .populate("userId", "fullName email mobileNumber")
       .lean();
 
-    return res.status(200).json({ labPatients: bookings });
+    const packageBookings = await PackageBookingModel.find({ labId })
+      .populate("userId", "fullName email mobileNumber")
+      .populate("packageId", "packageName")
+      .lean();
+
+    const formattedTestBookings = testBookings.map((b: any) => ({
+      ...b,
+      bookingType: "test",
+    }));
+
+    const formattedPackageBookings = packageBookings.map((b: any) => ({
+      ...b,
+      bookingType: "package",
+      testName: b.packageId?.packageName || "Package Booking",
+    }));
+
+    const allBookings = [...formattedTestBookings, ...formattedPackageBookings].sort((a, b) => {
+      const dateA = a.bookingDate ? new Date(a.bookingDate).getTime() : 0;
+      const dateB = b.bookingDate ? new Date(b.bookingDate).getTime() : 0;
+      return dateB - dateA; // latest first
+    });
+
+    return res.status(200).json({ labPatients: allBookings });
   } catch (err) {
-    console.error(err);
+    console.error("Error in getLabPatients:", err);
     return res.status(500).json({ message: "Server Error" });
   }
 };
@@ -520,6 +545,262 @@ const getPatientPackageBookings = async (req: Request, res: Response) => {
   }
 };
 
+// ------------------ LAB AGENCY TEST BOOKING ------------------
+const labBookTest = async (req: Request, res: Response) => {
+  try {
+    const { testId, patientId, fullName, gender, dob, mobileNumber, aadhar, bookingDate } = req.body;
+
+    const labId = (req as any).user?.id;
+    if (!labId) {
+      return res.status(401).json({ message: "Unauthorized. Lab ID not found in token." });
+    }
+
+    if (!testId || !bookingDate) {
+      return res.status(400).json({ message: "Missing testId or bookingDate" });
+    }
+
+    const bookingDateObj = new Date(bookingDate);
+    if (isNaN(bookingDateObj.getTime())) {
+      return res.status(400).json({ message: "Invalid bookingDate format" });
+    }
+
+    const test = await TestModel.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: "Test not found" });
+    }
+
+    if (test.labId.toString() !== labId.toString()) {
+      return res.status(403).json({ message: "Test does not belong to your lab" });
+    }
+
+    let patient;
+    if (patientId) {
+      patient = await patientModel.findById(patientId);
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+    } else {
+      if (!fullName || !gender || !dob || !mobileNumber) {
+        return res.status(400).json({ message: "Missing required patient details for new registration" });
+      }
+
+      patient = await patientModel.findOne({ mobileNumber, fullName });
+
+      if (!patient && aadhar) {
+        const aadharExists = await patientModel.findOne({ aadhar: String(aadhar) });
+        if (aadharExists) {
+          patient = aadharExists;
+        }
+      }
+
+      if (!patient) {
+        patient = await patientModel.create({
+          fullName,
+          gender,
+          dob: new Date(dob),
+          mobileNumber,
+          ...(aadhar ? { aadhar: String(aadhar) } : {}),
+        });
+      }
+    }
+
+    const booking = await LabTestBookingModel.create({
+      labId: new mongoose.Types.ObjectId(labId),
+      userId: patient._id,
+      testName: test.testName,
+      category: test.category || "General",
+      price: test.price || 0,
+      status: "pending",
+      bookingDate: bookingDateObj,
+      bookedBy: "lab",
+    });
+
+    return res.status(201).json({
+      message: "Test booked successfully by Lab Agency",
+      booking,
+      patient
+    });
+  } catch (err: unknown) {
+    console.error("Error in labBookTest:", err);
+    const errorMessage = err instanceof Error ? err.message : "Failed to book test by Lab Agency";
+    return res.status(500).json({ message: errorMessage });
+  }
+};
+
+// ------------------ LAB AGENCY PACKAGE BOOKING ------------------
+const labBookPackage = async (req: Request, res: Response) => {
+  try {
+    const { packageId, patientId, fullName, gender, dob, mobileNumber, aadhar, bookingDate } = req.body;
+
+    const labId = (req as any).user?.id;
+    if (!labId) {
+      return res.status(401).json({ message: "Unauthorized. Lab ID not found in token." });
+    }
+
+    if (!packageId || !bookingDate) {
+      return res.status(400).json({ message: "Missing packageId or bookingDate" });
+    }
+
+    const bookingDateObj = new Date(bookingDate);
+    if (isNaN(bookingDateObj.getTime())) {
+      return res.status(400).json({ message: "Invalid bookingDate format" });
+    }
+
+    const labPackage = await LabPackageModel.findById(packageId);
+    if (!labPackage) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+
+    if (labPackage.labId.toString() !== labId.toString()) {
+      return res.status(403).json({ message: "Package does not belong to your lab" });
+    }
+
+    let patient;
+    if (patientId) {
+      patient = await patientModel.findById(patientId);
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+    } else {
+      if (!fullName || !gender || !dob || !mobileNumber) {
+        return res.status(400).json({ message: "Missing required patient details for new registration" });
+      }
+
+      patient = await patientModel.findOne({ mobileNumber, fullName });
+
+      if (!patient && aadhar) {
+        const aadharExists = await patientModel.findOne({ aadhar: String(aadhar) });
+        if (aadharExists) {
+          patient = aadharExists;
+        }
+      }
+
+      if (!patient) {
+        patient = await patientModel.create({
+          fullName,
+          gender,
+          dob: new Date(dob),
+          mobileNumber,
+          ...(aadhar ? { aadhar: String(aadhar) } : {}),
+        });
+      }
+    }
+
+    const booking = new PackageBookingModel({
+      packageId,
+      labId: new mongoose.Types.ObjectId(labId),
+      tests: labPackage.tests,
+      userId: patient._id,
+      bookingDate: bookingDateObj,
+      status: "pending",
+      bookedBy: "lab",
+    });
+    await booking.save();
+
+    return res.status(201).json({
+      message: "Package booked successfully by Lab Agency",
+      booking,
+      patient
+    });
+  } catch (err: unknown) {
+    console.error("Error in labBookPackage:", err);
+    const errorMessage = err instanceof Error ? err.message : "Failed to book package by Lab Agency";
+    return res.status(500).json({ message: errorMessage });
+  }
+};
+
+
+// ------------------ LAB AGENCY TEST COMPLETION ------------------
+const completeTestBooking = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+    const file = req.file;
+
+    const labId = (req as any).user?.id;
+    if (!labId) {
+      return res.status(401).json({ message: "Unauthorized. Lab ID not found in token." });
+    }
+
+    const booking = await LabTestBookingModel.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.labId.toString() !== labId.toString()) {
+      return res.status(403).json({ message: "Access denied. Booking belongs to another lab." });
+    }
+
+    let reportUrl = booking.reportUrl;
+    if (file) {
+      reportUrl = await uploadToCloudinary(
+        file.buffer,
+        "lab/reports",
+        file.mimetype === "application/pdf" ? "raw" : "image"
+      );
+    }
+
+    booking.status = "completed";
+    if (reportUrl) {
+      booking.reportUrl = reportUrl;
+    }
+    await booking.save();
+
+    return res.status(200).json({
+      message: "Test booking completed successfully",
+      booking,
+    });
+  } catch (err: unknown) {
+    console.error("Error completing test booking:", err);
+    const errorMessage = err instanceof Error ? err.message : "Failed to complete test booking";
+    return res.status(500).json({ message: errorMessage });
+  }
+};
+
+// ------------------ LAB AGENCY PACKAGE COMPLETION ------------------
+const completePackageBooking = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+    const file = req.file;
+
+    const labId = (req as any).user?.id;
+    if (!labId) {
+      return res.status(401).json({ message: "Unauthorized. Lab ID not found in token." });
+    }
+
+    const booking = await PackageBookingModel.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.labId.toString() !== labId.toString()) {
+      return res.status(403).json({ message: "Access denied. Booking belongs to another lab." });
+    }
+
+    let reportUrl = booking.reportUrl;
+    if (file) {
+      reportUrl = await uploadToCloudinary(
+        file.buffer,
+        "lab/reports",
+        file.mimetype === "application/pdf" ? "raw" : "image"
+      );
+    }
+
+    booking.status = "completed";
+    if (reportUrl) {
+      booking.reportUrl = reportUrl;
+    }
+    await booking.save();
+
+    return res.status(200).json({
+      message: "Package booking completed successfully",
+      booking,
+    });
+  } catch (err: unknown) {
+    console.error("Error completing package booking:", err);
+    const errorMessage = err instanceof Error ? err.message : "Failed to complete package booking";
+    return res.status(500).json({ message: errorMessage });
+  }
+};
 
 // ------------------ EXPORTS ------------------
 export default {
@@ -541,5 +822,9 @@ export default {
   deleteLabPackage,
   getPackageDetailsById,
   bookPackage,
-  getPatientPackageBookings
+  getPatientPackageBookings,
+  labBookTest,
+  labBookPackage,
+  completeTestBooking,
+  completePackageBooking
 };

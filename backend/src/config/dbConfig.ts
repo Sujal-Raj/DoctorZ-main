@@ -7,19 +7,15 @@ import path from "path";
 import { createDefaultAdmin } from "../utils/createDefaultAdmin.js";
 
 
-console.log(process.env.NODE_ENV);
-console.log(process.env.MONGO_DEVELOPMENT_URI, process.env.MONGO_ATLAS_URI)
-let MONGO_URI;
-
-if(process.env.NODE_ENV == "development"){
-  MONGO_URI = process.env.MONGO_DEVELOPMENT_URI;
-}
-else{
-  MONGO_URI = process.env.MONGO_ATLAS_URI;
-};
-
-console.log(MONGO_URI)
 const dbConnect = async () => {
+  let MONGO_URI;
+
+  if (process.env.NODE_ENV === "development") {
+    MONGO_URI = process.env.MONGO_DEVELOPMENT_URI;
+  } else {
+    MONGO_URI = process.env.MONGO_ATLAS_URI;
+  }
+
   try {
     if (!MONGO_URI) {
       throw new Error("MONGO_URI environment variable is not defined");

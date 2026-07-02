@@ -1,7 +1,8 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IExpense extends Document {
-  clinicId: mongoose.Types.ObjectId;
+  clinicId?: mongoose.Types.ObjectId;
+  labId?: mongoose.Types.ObjectId;
 
   title: string;
 
@@ -37,7 +38,12 @@ const expenseSchema = new mongoose.Schema<IExpense>(
     clinicId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Clinic",
-      required: true,
+      required: false,
+    },
+    labId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Lab",
+      required: false,
     },
 
     title: {

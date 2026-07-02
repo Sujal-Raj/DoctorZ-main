@@ -106,7 +106,9 @@ export const approveLab = async (req, res) => {
         await sendMail(lab.email, "Lab Registration Approved ✅", `<p>Dear ${lab.name},</p>
        <p>Your registration has been <b>approved</b>.</p>
        <p><b>Lab ID:</b> ${generatedId}</p>
-       <p>Welcome to our platform!</p>`);
+       <p>Welcome to our platform!</p>`).catch((err) => {
+            console.error("Email sending failed:", err);
+        });
         return res.status(200).json({
             message: "Lab approved ✅ & mail sent successfully",
             lab,
@@ -126,7 +128,9 @@ export const rejectLab = async (req, res) => {
             return res.status(404).json({ message: "Lab not found" });
         }
         await sendMail(lab.email, "Lab Registration Rejected ❌", `<p>Dear ${lab.name},</p>
-       <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`);
+       <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`).catch((err) => {
+            console.error("Email sending failed:", err);
+        });
         return res.status(200).json({
             message: "Lab rejected ❌ & mail sent successfully",
             lab,
@@ -218,7 +222,9 @@ export const rejectClinic = async (req, res) => {
             return res.status(404).json({ message: "Clinic not found" });
         }
         await sendMail(clinic.email, "Clinic Registration Rejected ❌", `<p> ${clinic.clinicName},</p>
-       <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`);
+       <p>Your registration has been <b>rejected</b>. Please contact admin for more details.</p>`).catch((err) => {
+            console.error("Email sending failed:", err);
+        });
         return res.status(200).json({
             message: "Clinic rejected ❌ & mail sent successfully",
             clinic,

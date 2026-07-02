@@ -102,4 +102,43 @@ export const AdminVerifyToken = async (req, res, next) => {
         return res.status(401).json({ message: "Invalid token" });
     }
 };
-//# sourceMappingURL=auth.js.map
+export const receptionistVerifyToken = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "No token provided" });
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // now req.user.id & req.user.clinic available
+        next();
+    }
+    catch (error) {
+        return res.status(401).json({ message: "Invalid token" });
+    }
+};
+export const verifyLabToken = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Authorization header missing or malformed" });
+        }
+        const token = authHeader.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "Token is undefined or missing" });
+        }
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            return res.status(500).json({ message: "JWT secret is not configured" });
+        }
+        const decoded = jwt.verify(token, secret);
+        if (decoded.role !== "lab") {
+            return res.status(403).json({ message: "Access denied. Only lab agencies allowed." });
+        }
+        req.user = decoded;
+        next();
+    }
+    catch (error) {
+        console.error("Lab token verification error:", error);
+        return res.status(401).json({ message: "Invalid or expired token" });
+    }
+};

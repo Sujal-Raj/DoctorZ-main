@@ -1,151 +1,297 @@
 import timeSlotsModel from "../models/timeSlots.model.js";
-import { generateTimeSlots } from "../utils/slotGenerator.js";
-//------------------------Create time slots ------------------------
+/* =======================
+   Helpers
+======================= */
+const normalizeDate = (dateStr) => {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+const toMinutes = (time) => {
+    const [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+};
+const generateTimeSlots = (startTime, endTime) => {
+    const start = toMinutes(startTime);
+    const end = toMinutes(endTime);
+    if (isNaN(start) || isNaN(end) || start >= end) {
+        throw new Error("Invalid working hours");
+    }
+    const slots = [];
+    for (let t = start; t < end; t += 30) {
+        const h = Math.floor(t / 60);
+        const m = t % 60;
+        slots.push({
+            time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+            isActive: true,
+        });
+    }
+    return slots;
+};
+/* =======================
+   CREATE
+======================= */
 export const createTimeSlot = async (req, res) => {
     try {
-        console.log("Request Body:", req.body);
-        const { doctorId, dates, workingHours } = req.body;
+        const { doctorId, dates, workingHours, mode } = req.body;
+        console.log(mode);
+        if (!doctorId || !dates?.length || !workingHours?.start || !workingHours?.end || !mode) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
         const slots = generateTimeSlots(workingHours.start, workingHours.end);
-        const availability = [];
+        const createdDates = [];
         const alreadyExistDates = [];
-        for (const rawDate of dates) {
-            // ✅ Support ISO + plain date formats
-            const dateStr = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
-            let dateIso = rawDate;
-            // Remove time part
-            if (dateIso.includes("T")) {
-                dateIso = dateIso.split("T")[0];
-            }
-            const [year, month, day] = dateIso.split("-").map(Number);
-            // ✅ Create a date WITHOUT timezone shift
-            const pureDate = new Date(Date.UTC(year, month - 1, day));
-            if (isNaN(pureDate.getTime())) {
-                console.log("Invalid parsed date:", rawDate, pureDate);
-                continue; // skip invalid dates
-            }
-            // ✅ Check existing
-            const existing = await timeSlotsModel.findOne({
-                doctorId,
-                date: pureDate,
-            });
-            if (existing) {
+        for (const dateStr of dates) {
+            const date = normalizeDate(dateStr);
+            const exists = await timeSlotsModel.findOne({ doctorId, date, mode });
+            if (exists) {
                 alreadyExistDates.push(dateStr);
                 continue;
             }
-            availability.push({
+            await timeSlotsModel.create({
                 doctorId,
-                date: pureDate,
+                date,
+                mode,
                 slots,
             });
+            createdDates.push(dateStr);
         }
-        if (availability.length > 0) {
-            await timeSlotsModel.insertMany(availability);
-            console.log("Inserted Availability:", availability);
-        }
-        return res.status(200).json({
+        res.status(201).json({
             success: true,
-            message: "Time slots processed successfully",
-            createdDates: availability.map((a) => a.date.toISOString().split("T")[0]),
+            createdDates,
             alreadyExistDates,
         });
     }
-    catch (error) {
-        console.error("Error creating time slot:", error);
-        return res.status(500).json({ success: false, message: "Server error" });
+    catch (err) {
+        console.error(err);
+        res.status(400).json({ message: err.message });
     }
 };
-//------------------------Get all slots ------------------------
-export const getTimeSlots = async (req, res) => {
-    try {
-        const { doctorId } = req.params;
-        const slots = await timeSlotsModel.find({ doctorId });
-        return res.status(200).json(slots);
-    }
-    catch (error) {
-        console.error("Error fetching time slots:", error);
-        return res.status(500).json({ message: "Server error" });
-    }
-};
-// -------------------------Update a  slot------------------------
-export const updateSlot = async (req, res) => {
-    try {
-        const { time, isActive } = req.body;
-        const { id } = req.params;
-        const timeSlot = await timeSlotsModel.findById(id);
-        if (!timeSlot) {
-            return res.status(404).json({ message: "Time slot not found" });
-        }
-        const slot = timeSlot.slots.find((s) => s.time === time);
-        if (!slot) {
-            return res.status(404).json({ message: "Specific slot not found" });
-        }
-        slot.isActive = isActive;
-        await timeSlot.save();
-        return res
-            .status(200)
-            .json({ message: "Slot updated successfully", slots: timeSlot.slots });
-    }
-    catch (error) {
-        console.error("Error updating slot:", error);
-        return res.status(500).json({ message: "Server error" });
-    }
-};
-//------------------------Edit slots for a date------------------------
+/* =======================
+   EDIT
+======================= */
 export const editTimeSlot = async (req, res) => {
     try {
-        const { doctorId, date, workingHours } = req.body;
-        if (!doctorId || !date || !workingHours) {
-            return res.status(400).json({ message: "doctorId, date & workingHours are required" });
+        const { doctorId, date, workingHours, mode } = req.body;
+        const slots = generateTimeSlots(workingHours.start, workingHours.end);
+        const updated = await timeSlotsModel.findOneAndUpdate({ doctorId, date: normalizeDate(date), mode }, { slots }, { new: true });
+        if (!updated) {
+            return res.status(404).json({ message: "Slot not found" });
         }
-        const { start, end } = workingHours;
-        const existing = await timeSlotsModel.findOne({ doctorId, date });
-        if (!existing) {
-            return res.status(404).json({ message: "No slot found for this date" });
-        }
-        // Generate new 15-min slots
-        const generated = generateTimeSlots(start, end);
-        // Merge old states
-        const merged = generated.map((slot) => {
-            const oldSlot = existing.slots.find((s) => s.time === slot.time);
-            if (oldSlot) {
-                return {
-                    time: slot.time,
-                    isActive: oldSlot.isActive,
-                    _id: oldSlot._id, // only add if exists
-                };
-            }
-            // new slot → active by default
-            return {
-                time: slot.time,
-                isActive: true,
-            };
-        });
-        existing.slots = merged;
-        await existing.save();
-        return res.status(200).json({
-            success: true,
-            message: "Time slots updated successfully",
-            data: existing,
-        });
+        res.json({ success: true, data: updated });
     }
     catch (err) {
-        console.error("Edit Slot Error:", err);
-        return res.status(500).json({ message: "Server error", error: err });
+        res.status(400).json({ message: err.message });
     }
 };
-//----------------------------getActiveSlots----------------------------
-export const getActiveSlots = async (req, res) => {
+/* =======================
+   GET
+======================= */
+// export const getTimeSlots = async (req: Request, res: Response) => {
+//   const { doctorId } = req.params;
+//   const data = await timeSlotsModel.find({ doctorId }).sort({ date: 1 });
+//   res.json(data);
+// };
+export const getDoctorTimeSlots = async (req, res) => {
     try {
         const { doctorId } = req.params;
-        // Get all time slots for doctor
-        const slots = await timeSlotsModel.find({ doctorId });
-        // Filter only those having at least 1 active slot
-        const filteredSlots = slots.filter((slot) => slot.slots.some((s) => s.isActive));
-        // Return only active ones
-        res.status(200).json(filteredSlots);
+        const slots = await timeSlotsModel
+            .find({ doctorId })
+            .sort({ date: 1 });
+        res.json(slots); // ✅ raw array
     }
     catch (error) {
-        console.error("Error fetching active slots:", error);
+        console.error("Error fetching doctor slots:", error);
         res.status(500).json({ message: "Server error" });
     }
+};
+// export const getPatientSlots = async (req:Request, res:Response) => {
+//   try {
+//     const { doctorId } = req.params;
+//     const { mode } = req.query;
+//     if (!mode || !["online", "offline"].includes(mode as string)) {
+//       return res.status(400).json({
+//         message: "Mode must be 'online' or 'offline'",
+//       });
+//     }
+//     const slots = await timeSlotsModel
+//       .find({ doctorId, mode })
+//       .sort({ date: 1 });
+//     const availableMonths: { [key: string]: { date: string; slots: any[] }[] } = {};
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+//     for (const entry of slots) {
+//       const entryDate = new Date(entry.date);
+//       entryDate.setHours(0, 0, 0, 0);
+//       if (entryDate < today) continue;
+//       const year = entryDate.getFullYear();
+//       const month = String(entryDate.getMonth() + 1).padStart(2, "0");
+//       const monthKey = `${year}-${month}`;
+//       if (!availableMonths[monthKey]) {
+//         availableMonths[monthKey] = [];
+//       }
+//       availableMonths[monthKey].push({
+//         date: entry.date.toISOString(),
+//         slots: entry.slots,
+//       });
+//     }
+//     res.json({
+//       message: "Available months and slots fetched successfully",
+//       availableMonths,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching patient slots:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+// export const getPatientSlots = async (req: Request, res: Response) => {
+//   try {
+//     const { doctorId } = req.params;
+//     const { mode } = req.query;
+//     if (!mode || !["online", "offline"].includes(mode as string)) {
+//       return res.status(400).json({
+//         message: "Mode must be 'online' or 'offline'",
+//       });
+//     }
+//     const slots = await timeSlotsModel
+//       .find({ doctorId, mode })
+//       .sort({ date: 1 });
+//     const availableMonths: { [key: string]: { date: string; slots: any[] }[] } =
+//       {};
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+//     for (const entry of slots) {
+//       const entryDate = new Date(entry.date);
+//       entryDate.setHours(0, 0, 0, 0);
+//       if (entryDate < today) continue;
+//       const year = entryDate.getFullYear();
+//       const month = String(entryDate.getMonth() + 1).padStart(2, "0");
+//       const monthKey = `${year}-${month}`;
+//       if (!availableMonths[monthKey]) {
+//         availableMonths[monthKey] = [];
+//       }
+//       availableMonths[monthKey].push({
+//         date: entry.date.toISOString(),
+//         slots: entry.slots,
+//       });
+//     }
+//     res.json({
+//       message: "Available months and slots fetched successfully",
+//       availableMonths,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching patient slots:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+export const getPatientSlots = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        const { mode } = req.query;
+        console.log(`[getPatientSlots] doctorId: ${doctorId}, mode: ${mode}`);
+        if (!mode || !["online", "offline"].includes(mode)) {
+            return res.status(400).json({
+                message: "Mode must be 'online' or 'offline'",
+            });
+        }
+        console.log(`[getPatientSlots] Querying with filter: { doctorId: ${doctorId}, mode: ${mode} }`);
+        const slots = await timeSlotsModel
+            .find({ doctorId, mode })
+            .sort({ date: 1 });
+        console.log(`[getPatientSlots] Found ${slots.length} documents`);
+        slots.forEach((slot, index) => {
+            console.log(`  [${index}] Date: ${slot.date}, Mode: ${slot.mode}, Slots: ${slot.slots.length}`);
+        });
+        const availableMonths = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (const entry of slots) {
+            const entryDate = new Date(entry.date);
+            entryDate.setHours(0, 0, 0, 0);
+            if (entryDate < today)
+                continue;
+            const year = entryDate.getFullYear();
+            const month = String(entryDate.getMonth() + 1).padStart(2, "0");
+            const monthKey = `${year}-${month}`;
+            if (!availableMonths[monthKey]) {
+                availableMonths[monthKey] = [];
+            }
+            availableMonths[monthKey].push({
+                date: entry.date.toISOString(),
+                slots: entry.slots,
+            });
+        }
+        console.log(`[getPatientSlots] Returning months:`, Object.keys(availableMonths));
+        res.json({
+            message: "Available months and slots fetched successfully",
+            availableMonths,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching patient slots:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+// export const getTimeSlots = async (req: Request, res: Response) => {
+//   try {
+//     const { doctorId } = req.params;
+//     const { mode } = req.query;
+//     console.log(doctorId,mode)
+//     if (!mode || !["online", "offline"].includes(mode as string)) {
+//       return res.status(400).json({
+//         message: "Mode must be 'online' or 'offline'",
+//       });
+//     }
+//     // Fetch slots filtered by doctor + mode
+//     const slots = await timeSlotsModel
+//       .find({
+//         doctorId,
+//         mode,
+//       })
+//       .sort({ date: 1 });
+//     const availableMonths: {
+//       [key: string]: { date: string; slots: any[] }[];
+//     } = {};
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+//     for (const entry of slots) {
+//       const entryDate = new Date(entry.date);
+//       entryDate.setHours(0, 0, 0, 0);
+//       // Only include today & future dates
+//       if (entryDate < today) continue;
+//       const year = entryDate.getFullYear();
+//       const month = String(entryDate.getMonth() + 1).padStart(2, "0");
+//       const monthKey = `${year}-${month}`;
+//       if (!availableMonths[monthKey]) {
+//         availableMonths[monthKey] = [];
+//       }
+//       availableMonths[monthKey].push({
+//         date: entry.date.toISOString(),
+//         slots: entry.slots,
+//       });
+//     }
+//     res.json({ availableMonths });
+//   } catch (error) {
+//     console.error("Error fetching slots:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+/* =======================
+   UPDATE SINGLE SLOT
+======================= */
+export const updateSlot = async (req, res) => {
+    const { id } = req.params;
+    const { time, isActive } = req.body;
+    const updated = await timeSlotsModel.findOneAndUpdate({ _id: id, "slots.time": time }, { $set: { "slots.$.isActive": isActive } }, { new: true });
+    if (!updated) {
+        return res.status(404).json({ message: "Slot not found" });
+    }
+    res.json({ success: true });
+};
+/* =======================
+   DELETE
+======================= */
+export const deleteTimeSlot = async (req, res) => {
+    await timeSlotsModel.findByIdAndDelete(req.params.slotId);
+    res.json({ success: true });
 };
