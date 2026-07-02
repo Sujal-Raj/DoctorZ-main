@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-
 import puppeteer from "puppeteer";
 import PrescriptionModel from "../models/prescription.model.js";
 import cloudinary from "../config/cloudinary.js";
@@ -31,7 +30,6 @@ export const addPrescription = async (req: Request, res: Response) => {
 
     const prescription = await PrescriptionModel.create({
       doctorId,
-      // patientAadhar,
       bookingId,
       diagnosis,
       symptoms: symptoms || [],
@@ -40,9 +38,6 @@ export const addPrescription = async (req: Request, res: Response) => {
       notes: notes || "",
     });
 
-    // -------------------------
-    // STEP 1: Create HTML
-    // -------------------------
     const htmlContent = `
       <html>
       <head>
@@ -56,15 +51,12 @@ export const addPrescription = async (req: Request, res: Response) => {
       </head>
       <body>
         <h1>Prescription</h1>
-        
+
         <div class="section">
           <h3>Patient Details</h3>
-          <p><strong>Name:</strong> ${name}</p>
-
-          <p><strong>Gender:</strong> ${gender}</p>
-           
-          <p><strong>Aadhar:</strong> ${patientAadhar}</p>
-        
+          <p><strong>Name:</strong> ${name || "-"}</p>
+          <p><strong>Gender:</strong> ${gender || "-"}</p>
+          <p><strong>Aadhar:</strong> ${patientAadhar || "-"}</p>
         </div>
 
         <div class="section">
@@ -75,7 +67,7 @@ export const addPrescription = async (req: Request, res: Response) => {
         <div class="section">
           <h3>Symptoms</h3>
           <ul>
-            ${symptoms?.map((s: string) => `<li>${s}</li>`).join("")}
+            ${(symptoms || []).map((s: string) => `<li>${s}</li>`).join("")}
           </ul>
         </div>
 
@@ -87,13 +79,12 @@ export const addPrescription = async (req: Request, res: Response) => {
               <th>Dosage</th>
               <th>Quantity</th>
             </tr>
-            ${medicines
-              ?.map(
-                (m: any) =>
-                  `
+            ${(medicines || [])
+              .map(
+                (m: any) => `
               <tr>
-                <td>${m.name}</td>
-                <td>${m.dosage}</td>
+                <td>${m.name || "-"}</td>
+                <td>${m.dosage || "-"}</td>
                 <td>${m.quantity || "-"}</td>
               </tr>
             `
@@ -105,9 +96,7 @@ export const addPrescription = async (req: Request, res: Response) => {
         <div class="section">
           <h3>Recommended Tests</h3>
           <ul>
-            ${(recommendedTests || [])
-              .map((t: string) => `<li>${t}</li>`)
-              .join("")}
+            ${(recommendedTests || []).map((t: string) => `<li>${t}</li>`).join("")}
           </ul>
         </div>
 
@@ -119,20 +108,19 @@ export const addPrescription = async (req: Request, res: Response) => {
       </html>
     `;
 
-    // -------------------------
-    // STEP 2: Generate PDF (Puppeteer)
-    // -------------------------
     const browser = await puppeteer.launch({
       headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
     const page = await browser.newPage();
-    await page.setContent(htmlContent);
-    await page.setViewport({ width: 794, height: 1123 }); 
+    await page.setViewport({ width: 794, height: 1123 });
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
     const imageBuffer = await page.screenshot({ fullPage: true });
+    // const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     await browser.close();
-
-    // STEP 3: Upload to Cloudinary
 
     const cloudResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -155,18 +143,17 @@ export const addPrescription = async (req: Request, res: Response) => {
       uploadStream.end(imageBuffer);
     });
 
-    // Save URL
     prescription.pdfUrl = (cloudResult as any).secure_url;
     console.log("Cloudinary Response:", cloudResult);
 
     await prescription.save();
+
     let emr = await EMRModel.findOne({
       doctorId,
       aadhar: patientAadhar,
     });
 
     if (!emr) {
-      // New EMR file
       emr = await EMRModel.create({
         doctorId,
         aadhar: patientAadhar,
@@ -174,15 +161,15 @@ export const addPrescription = async (req: Request, res: Response) => {
       });
     }
 
-    // Push the prescription _id into EMR
     if (!emr.prescriptionId) {
       emr.prescriptionId = [];
     }
 
     emr.prescriptionId.push(prescription._id);
     await emr.save();
+
     return res.status(201).json({
-      message: "Prescription saved with PDF",
+      message: "Prescription saved with image",
       data: prescription,
       emr,
     });
@@ -204,15 +191,12 @@ export const downloadPrescription = async (req: Request, res: Response) => {
 
     if (!fileUrl) return res.status(404).send("Image not found");
 
-    // extract extension (png / jpg / jpeg)
     const ext = fileUrl.split(".").pop()?.toLowerCase() || "png";
 
-    // download from cloudinary
     const response = await axios.get(fileUrl, {
       responseType: "arraybuffer",
     });
 
-    //  force download
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="prescription_${id}.${ext}"`

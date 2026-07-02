@@ -3,6 +3,8 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IEMR extends Document {
 
   doctorId: mongoose.Types.ObjectId;
+    fullName: string;
+  mobileNumber: string;
   aadhar?: number;
   allergies?: string[];
   diseases?: string[];
@@ -24,6 +26,14 @@ const emrSchema = new mongoose.Schema<IEMR>(
       ref: "Doctor",
       default: null,
       
+    },
+      fullName: {
+      type: String,
+      trim: true,
+    },
+    mobileNumber: {
+      type: String,
+      trim: true,
     },
     aadhar: {
       type: Number,
