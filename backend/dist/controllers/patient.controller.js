@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import EMRModel from "../models/emr.model.js";
 import Booking from "../models/booking.model.js";
 import PrescriptionModel from "../models/prescription.model.js";
-import { LabTestBookingModel } from "../models/lab.model.js";
+import { LabTestBookingModel, PackageBookingModel } from "../models/lab.model.js";
 import offlineBooking from "../models/OfflineBookingModel.js";
 const patientRegister = async (req, res) => {
     try {
@@ -477,10 +477,28 @@ export const getUserLabTest = async (req, res) => {
     try {
         const labTests = await LabTestBookingModel.find({ userId: id })
             .populate("labId", "name city address")
-            .sort({ bookedAt: -1 });
+            .lean();
+        const packageBookings = await PackageBookingModel.find({ userId: id })
+            .populate("labId", "name city address")
+            .populate("packageId", "packageName")
+            .lean();
+        const formattedTestBookings = labTests.map((b) => ({
+            ...b,
+            bookingType: "test",
+        }));
+        const formattedPackageBookings = packageBookings.map((b) => ({
+            ...b,
+            bookingType: "package",
+            testName: b.packageId?.packageName || "Package Booking",
+        }));
+        const allBookings = [...formattedTestBookings, ...formattedPackageBookings].sort((a, b) => {
+            const dateA = a.bookedAt ? new Date(a.bookedAt).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.bookedAt ? new Date(b.bookedAt).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
         return res.status(200).json({
             success: true,
-            labTests,
+            labTests: allBookings,
         });
     }
     catch (err) {
