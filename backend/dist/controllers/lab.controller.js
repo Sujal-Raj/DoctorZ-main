@@ -268,7 +268,7 @@ const getLabPatients = async (req, res) => {
             .lean();
         const packageBookings = await PackageBookingModel.find({ labId })
             .populate("userId", "fullName email mobileNumber")
-            .populate("packageId", "packageName")
+            .populate("packageId", "packageName totalPrice")
             .lean();
         const formattedTestBookings = testBookings.map((b) => ({
             ...b,

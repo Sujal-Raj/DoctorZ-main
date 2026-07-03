@@ -24,7 +24,8 @@ import offlineBookingRoutes from "./routes/offlineBooking.routes.js"
 import { createDefaultAdmin } from "./utils/createDefaultAdmin.js";
 import receptionRoutes from "./routes/receptionist.route.js"
 import inventoryRouter from "./routes/inventory.routes.js";
-import expenseRoutes from "./routes/expense.routes.js"
+import expenseRoutes from "./routes/expense.routes.js";
+import revenueRoutes from "./routes/revenue.routes.js";
 
 // dotenv.config();
  dbConnect();
@@ -190,6 +191,7 @@ app.use("/api/emr", emrRoutes);
 // app.use("/api/emr",emrRoutes);
 app.use("/api/prescription",prescriptionRoutes);
 app.use("/api/receptionist",receptionRoutes);
+app.use("/api/revenue", revenueRoutes);
 
 // app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 

@@ -187,7 +187,7 @@ const doctorLogin = async (req, res) => {
 const getDoctorById = async (req, res) => {
     try {
         const { id } = req.params;
-        const doctor = await doctorModel.findById(id);
+        const doctor = await doctorModel.findById(id).populate("clinic", "clinicName");
         if (!doctor) {
             return res.status(400).json({ message: "Doctor not found" });
         }

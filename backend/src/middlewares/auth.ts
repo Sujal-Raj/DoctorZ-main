@@ -34,6 +34,7 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
+    req.body = req.body || {};
     req.body.doctor = doctor;
     next();
   } catch (error) {
@@ -75,6 +76,7 @@ export const verifyPatientToken = async (req: Request, res: Response, next: Next
       return res.status(404).json({ message: 'Patient not found' });
     }
 
+    req.body = req.body || {};
     req.body.patient = patient;
     next();
   } catch (error) {
@@ -112,6 +114,7 @@ export const verifyClinicToken = async (req: Request, res: Response, next: NextF
     }
 
     // Attach clinic info to request object for downstream handlers
+    req.body = req.body || {};
     req.body.clinic = clinic;
     next();
   } catch (error) {

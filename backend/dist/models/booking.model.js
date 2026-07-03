@@ -35,6 +35,31 @@ const bookingSchema = new Schema({
     meetingLink: {
         type: String,
         // required:true,
+    },
+    clinicId: {
+        type: Schema.Types.ObjectId,
+        ref: "Clinic",
+        required: false,
+        default: null,
+    },
+    paymentStatus: {
+        type: String,
+        enum: ["paid", "unpaid", "pending"],
+        default: "unpaid",
+        required: true,
+    },
+    paymentDate: {
+        type: Date,
+        required: false,
+    },
+    paymentMethod: {
+        type: String,
+        enum: ["cash", "upi", "card", "netbanking", "other"],
+        required: false,
+    },
+    transactionId: {
+        type: String,
+        required: false,
     }
 }, { timestamps: true });
 const Booking = mongoose.model("Booking", bookingSchema);

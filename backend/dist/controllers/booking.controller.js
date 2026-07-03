@@ -6,7 +6,7 @@ export const bookAppointment = async (req, res) => {
         // Parse patient and EMR data from FormData (they come as strings)
         const patient = req.body.patient ? JSON.parse(req.body.patient) : null;
         const emr = req.body.emr ? JSON.parse(req.body.emr) : null;
-        const { doctorId, slot, slotId, dateTime, mode, fees, userId } = req.body;
+        const { doctorId, slot, slotId, dateTime, mode, fees, userId, clinicId } = req.body;
         // Uploaded files
         const files = req.files; // Multer handles files
         let reportPaths = [];
@@ -35,11 +35,11 @@ export const bookAppointment = async (req, res) => {
             dateTime: new Date(dateTime),
             mode,
             fees,
-            // emrId: newEmr?._id || null,
-            // status: "booked",
             roomId,
             status: "pending",
             patient: { name, age, gender, aadhar, contact, relation },
+            clinicId: clinicId || null,
+            paymentStatus: "unpaid",
         });
         // Create EMR if any EMR data or reports exist
         if ((allergies?.length) ||

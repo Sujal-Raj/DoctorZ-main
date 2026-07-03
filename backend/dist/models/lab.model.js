@@ -53,6 +53,25 @@ const LabTestBookingSchema = new Schema({
     reportUrl: {
         type: String,
     },
+    paymentStatus: {
+        type: String,
+        enum: ["paid", "unpaid", "pending"],
+        default: "unpaid",
+        required: true,
+    },
+    paymentDate: {
+        type: Date,
+        required: false,
+    },
+    paymentMethod: {
+        type: String,
+        enum: ["cash", "upi", "card", "netbanking", "other"],
+        required: false,
+    },
+    transactionId: {
+        type: String,
+        required: false,
+    }
 }, { timestamps: true });
 export const LabTestBookingModel = mongoose.model("LabTestBooking", LabTestBookingSchema);
 const LabPackageSchema = new Schema({
@@ -83,5 +102,24 @@ const PackageBookingSchema = new Schema({
     reportUrl: {
         type: String,
     },
+    paymentStatus: {
+        type: String,
+        enum: ["paid", "unpaid", "pending"],
+        default: "unpaid",
+        required: true,
+    },
+    paymentDate: {
+        type: Date,
+        required: false,
+    },
+    paymentMethod: {
+        type: String,
+        enum: ["cash", "upi", "card", "netbanking", "other"],
+        required: false,
+    },
+    transactionId: {
+        type: String,
+        required: false,
+    }
 }, { timestamps: true });
 export const PackageBookingModel = mongoose.model("PackageBooking", PackageBookingSchema);

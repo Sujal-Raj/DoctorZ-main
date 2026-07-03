@@ -409,6 +409,10 @@ export const bookToken = async (req: any, res: Response) => {
       status: "pending",
       bookedBy: isReceptionist ? "receptionist" : "patient",
       paid: paid,
+      clinicId: isReceptionist ? req.user.clinic : null,
+      paymentStatus: paid ? "paid" : "unpaid",
+      paymentDate: paid ? new Date() : null,
+      paymentMethod: paid ? "cash" : null,
     });
 
 
