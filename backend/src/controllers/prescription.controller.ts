@@ -117,7 +117,10 @@ export const addPrescription = async (req: Request, res: Response) => {
 
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123 });
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    await page.setContent(htmlContent, {
+  waitUntil: "domcontentloaded",
+  timeout: 0,
+});
 
     const imageBuffer = await page.screenshot({ fullPage: true });
     // const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
