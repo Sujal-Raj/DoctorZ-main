@@ -441,6 +441,7 @@ export const getDoctorOfflineBookings = async (req: Request, res: Response) => {
 
     const bookings = await offlineBooking
       .find({ doctorId })
+      .populate("userId")
       .sort({ date: 1, tokenNumber: 1 });
 
     return res.status(200).json({ bookings });

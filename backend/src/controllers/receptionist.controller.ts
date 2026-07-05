@@ -7,6 +7,8 @@ import clinicModel from "../models/clinic.model.js";
 import Booking from "../models/booking.model.js";
 import offlineBooking from "../models/OfflineBookingModel.js";
 import { LuBookUp } from "react-icons/lu";
+import EMRModel from "../models/emr.model.js";
+import mongoose from "mongoose";
 
 export const receptionistLogin = async (req: Request, res: Response) => {
   try {
@@ -71,6 +73,7 @@ export const receptionistLogin = async (req: Request, res: Response) => {
 };
 
 export const walkInRegisteration = async (req: Request, res: Response) => {
+  const session = await mongoose.startSession();
   try {
     const { fullName, gender, dob, mobileNumber, aadhar } = req.body;
 
@@ -93,18 +96,54 @@ export const walkInRegisteration = async (req: Request, res: Response) => {
     }
 
     // ✅ Create walk-in patient (no email/password)
-    const patient = await patientModel.create({
-      fullName,
-      gender,
-      dob,
-      mobileNumber,
-      aadhar,
-      // registrationType: "walk-in", // optional flag if needed
+    // const patient = await patientModel.create({
+    //   fullName,
+    //   gender,
+    //   dob,
+    //   mobileNumber,
+    //   aadhar,
+    //   // registrationType: "walk-in", // optional flag if needed
+    // });
+
+
+    let createdPatient;
+    let createdEmr
+     await session.withTransaction(async () => {
+      const [patient] = await patientModel.create(
+        [
+          {
+            fullName,
+            gender,
+            dob,
+            mobileNumber,
+            aadhar,
+          },
+        ],
+        { session }
+      );
+
+      createdPatient = patient;
+
+      const [emr] = await EMRModel.create(
+        [
+          {
+            patientId: patient._id,
+            fullName,
+            mobileNumber,
+            aadhar,
+          },
+        ],
+        { session }
+      );
+
+      createdEmr = emr;
     });
+    console.log("created",createdEmr,createdPatient)
 
     return res.status(201).json({
       message: "Walk-in patient registered successfully",
-      patient,
+      createdPatient,
+      createdEmr
     });
   } catch (error) {
     console.log("Walk-in Registration Error:", error);

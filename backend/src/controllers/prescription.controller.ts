@@ -20,11 +20,13 @@ export const addPrescription = async (req: Request, res: Response) => {
       notes,
       name,
       gender,
+      mobileNumber
     } = req.body;
+    console.log(name,mobileNumber);
 
     if (!doctorId || !diagnosis || !medicines) {
       return res.status(400).json({
-        message: "doctorId, patientAadhar, diagnosis & medicines are required",
+        message: "doctorId, diagnosis & medicines are required",
       });
     }
 
@@ -148,18 +150,33 @@ export const addPrescription = async (req: Request, res: Response) => {
 
     await prescription.save();
 
-    let emr = await EMRModel.findOne({
-      doctorId,
-      aadhar: patientAadhar,
-    });
+    // let emr = await EMRModel.findOne({
+    //   doctorId,
+    //   aadhar: patientAadhar,
+    // });
 
-    if (!emr) {
-      emr = await EMRModel.create({
-        doctorId,
-        aadhar: patientAadhar,
-        prescriptionId: [],
-      });
-    }
+    // if (!emr) {
+    //   emr = await EMRModel.create({
+    //     doctorId,
+    //     aadhar: patientAadhar,
+    //     prescriptionId: [],
+    //   });
+    // }
+
+    let emr = await EMRModel.findOne({
+  doctorId,
+  name,
+  mobileNumber,
+});
+
+if (!emr) {
+  emr = await EMRModel.create({
+    doctorId,
+    name,
+    mobileNumber,
+    prescriptionId: [],
+  });
+}
 
     if (!emr.prescriptionId) {
       emr.prescriptionId = [];
