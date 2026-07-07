@@ -93,8 +93,8 @@ export const addInventoryItem = async (
 
     await newItem.save();
 
-    // If it's a lab stock purchase, automatically create a matching expense entry
-    if (labId) {
+    // If it's a lab or clinic stock purchase, automatically create a matching expense entry
+    if (labId || clinicId) {
       let expenseCategory: "Medicine Purchase" | "Equipment" | "Miscellaneous" = "Miscellaneous";
       if (category === "Medicine") {
         expenseCategory = "Medicine Purchase";
@@ -105,7 +105,8 @@ export const addInventoryItem = async (
       const totalAmount = quantity * price;
 
       const autoExpense = new expenseModel({
-        labId,
+        labId: labId || undefined,
+        clinicId: clinicId || undefined,
         title: `Inventory Purchase: ${itemName}`,
         category: expenseCategory,
         amount: totalAmount,
