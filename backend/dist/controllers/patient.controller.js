@@ -95,13 +95,27 @@ const patientRegister = async (req, res) => {
 const patientLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("Login Email:", email);
+        console.log("Login Identifier:", email);
         if (!email || !password) {
             return res
                 .status(400)
-                .json({ message: "Email and Password are required." });
+                .json({ message: "Email/Mobile and Password are required." });
         }
-        const patient = await patientModel.findOne({ email: email.toLowerCase() });
+        // Determine query based on input format (email or mobile)
+        let query = {};
+        if (email.includes("@")) {
+            query = { email: email.toLowerCase() };
+        }
+        else {
+            const phoneNum = Number(email.replace(/\D/g, ""));
+            if (!isNaN(phoneNum) && phoneNum > 0) {
+                query = { mobileNumber: phoneNum };
+            }
+            else {
+                query = { email: email.toLowerCase() };
+            }
+        }
+        const patient = await patientModel.findOne(query);
         console.log("Found Patient:", patient);
         if (!patient) {
             return res.status(400).json({ message: "Invalid Credentials." });

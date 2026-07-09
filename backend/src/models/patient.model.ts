@@ -18,9 +18,12 @@ export interface IPatient extends Document {
     name: string;
     number: number;
   };
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  familyId?: string;
 
-  favouriteDoctors?: mongoose.Types.ObjectId[]; // Array of favorite doctor IDs
-  favouriteClinics?: mongoose.Types.ObjectId[]; // Array of favorite clinic IDs
+  favouriteDoctors?: mongoose.Types.ObjectId[];
+  favouriteClinics?: mongoose.Types.ObjectId[];
 }
 
 const patientSchema = new mongoose.Schema<IPatient>(
@@ -80,6 +83,15 @@ const patientSchema = new mongoose.Schema<IPatient>(
       number: {
         type: Number,
       },
+    },
+    insuranceProvider: {
+      type: String,
+    },
+    insurancePolicyNumber: {
+      type: String,
+    },
+    familyId: {
+      type: String,
     },
 
     favouriteDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Doctor" }],

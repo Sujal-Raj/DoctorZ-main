@@ -72,34 +72,65 @@ export const receptionistLogin = async (req: Request, res: Response) => {
 
 export const walkInRegisteration = async (req: Request, res: Response) => {
   try {
-    const { fullName, gender, dob, mobileNumber, aadhar } = req.body;
-
-    // ✅ Required validation (minimal fields)
-    if (!fullName || !gender || !dob || !mobileNumber || !aadhar) {
-      return res.status(400).json({
-        message: "Required fields missing",
-      });
-    }
-
-    // ✅ Check if Aadhar already exists
-    const existingAadhar = await patientModel.findOne({
-      aadhar: String(aadhar),
-    });
-
-    if (existingAadhar) {
-      return res.status(400).json({
-        message: "Patient with this Aadhar already exists",
-      });
-    }
-
-    // ✅ Create walk-in patient (no email/password)
-    const patient = await patientModel.create({
+    const {
       fullName,
       gender,
       dob,
       mobileNumber,
       aadhar,
-      // registrationType: "walk-in", // optional flag if needed
+      abhaId,
+      emergencyContactName,
+      emergencyContactNumber,
+      insuranceProvider,
+      insurancePolicyNumber,
+      familyId,
+    } = req.body;
+
+    // Required validation (minimal fields)
+    if (!fullName || !gender || !dob || !mobileNumber) {
+      return res.status(400).json({
+        message: "Full name, gender, DOB, and mobile number are required",
+      });
+    }
+
+    // Check if Aadhar already exists if provided
+    if (aadhar) {
+      const existingAadhar = await patientModel.findOne({
+        aadhar: String(aadhar),
+      });
+
+      if (existingAadhar) {
+        return res.status(400).json({
+          message: "Patient with this Aadhar already exists",
+        });
+      }
+    }
+
+    // Handle family registration grouping
+    let assignedFamilyId = familyId;
+    if (familyId === "new") {
+      assignedFamilyId = "FAM-" + Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    const defaultPassword = String(mobileNumber);
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+    // Create walk-in patient
+    const patient = await patientModel.create({
+      fullName,
+      gender,
+      dob,
+      mobileNumber,
+      password: passwordHash,
+      aadhar: aadhar ? String(aadhar) : undefined,
+      abhaId: abhaId || undefined,
+      emergencyContact: {
+        name: emergencyContactName || "",
+        number: emergencyContactNumber ? Number(emergencyContactNumber) : 0,
+      },
+      insuranceProvider: insuranceProvider || undefined,
+      insurancePolicyNumber: insurancePolicyNumber || undefined,
+      familyId: assignedFamilyId || undefined,
     });
 
     return res.status(201).json({
@@ -262,5 +293,30 @@ export const updateClinicPatient = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("updateClinicPatient error:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const searchPatientByMobile = async (req: Request, res: Response) => {
+  try {
+    const { mobile } = req.params; // It could be name or mobile
+    if (!mobile) {
+      return res.status(400).json({ success: false, message: "Search term is required" });
+    }
+
+    const query: any = {};
+    if (!isNaN(Number(mobile))) {
+      // If numeric, search exact mobile
+      query.mobileNumber = Number(mobile);
+    } else {
+      // If string, search full name with regex
+      query.fullName = { $regex: mobile, $options: "i" };
+    }
+
+    const patients = await patientModel.find(query).limit(5);
+
+    return res.status(200).json({ success: true, patients });
+  } catch (error: any) {
+    console.error("Search patient error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

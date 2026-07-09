@@ -112,13 +112,6 @@ export const getExpenses = async (
     let query: any = {};
 
     if (clinicId) {
-      const clinicExists = await clinicModel.findById(clinicId);
-      if (!clinicExists) {
-        return res.status(404).json({
-          success: false,
-          message: "Clinic not found",
-        });
-      }
       query.clinicId = clinicId;
     } else if (labId) {
       const labExists = await LabModel.findById(labId);

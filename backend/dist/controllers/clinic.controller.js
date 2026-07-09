@@ -125,7 +125,7 @@ export const clinicRegister = async (req, res) => {
         console.log("🟡 Incoming registration request...");
         console.log("➡️ Body:", req.body);
         console.log("➡️ Files:", req.files);
-        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, staffEmail, staffName, staffPassword, staffId, } = req.body;
+        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, staffEmail, staffName, staffPassword, staffId, subscriptionPlan, } = req.body;
         if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
             return res.status(400).json({
                 message: "All required fields must be filled.",
@@ -178,6 +178,7 @@ export const clinicRegister = async (req, res) => {
             staffName,
             staffId,
             staffPassword: await bcrypt.hash(staffPassword, 10),
+            subscriptionPlan,
             registrationCertificate: registrationCertPath,
             clinicImage: clinicImagePath,
         });
@@ -265,6 +266,7 @@ export const clinicLogin = async (req, res) => {
                 staffName: clinic.staffName,
                 staffEmail: clinic.staffEmail,
                 clinicName: clinic.clinicName,
+                allowedFeatures: clinic.allowedFeatures || [],
             },
         });
     }
@@ -678,5 +680,20 @@ export const getClinic = async (req, res) => {
         res.status(500).json({
             message: error,
         });
+    }
+};
+import notificationModel from "../models/notification.model.js";
+export const getClinicNotifications = async (req, res) => {
+    try {
+        const { clinicId } = req.params;
+        const logs = await notificationModel.find({ clinicId }).sort({ sentAt: -1 }).limit(100);
+        return res.status(200).json({
+            success: true,
+            logs,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching notifications:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 };

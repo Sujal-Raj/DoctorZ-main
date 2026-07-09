@@ -26,6 +26,12 @@ import receptionRoutes from "./routes/receptionist.route.js"
 import inventoryRouter from "./routes/inventory.routes.js";
 import expenseRoutes from "./routes/expense.routes.js";
 import revenueRoutes from "./routes/revenue.routes.js";
+import saasRoutes from "./routes/saas.routes.js";
+import staffRoutes from "./routes/staff.routes.js";
+import ipdRoutes from "./routes/ipd.routes.js";
+import billRoutes from "./routes/bill.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import assetSupplierRoutes from "./routes/assetSupplier.routes.js";
 
 // dotenv.config();
  dbConnect();
@@ -192,6 +198,12 @@ app.use("/api/emr", emrRoutes);
 app.use("/api/prescription",prescriptionRoutes);
 app.use("/api/receptionist",receptionRoutes);
 app.use("/api/revenue", revenueRoutes);
+app.use("/api/saas", saasRoutes);
+app.use("/api/staff", staffRoutes);
+app.use("/api/ipd", ipdRoutes);
+app.use("/api/billing", billRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/asset-supplier", assetSupplierRoutes);
 
 // app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 

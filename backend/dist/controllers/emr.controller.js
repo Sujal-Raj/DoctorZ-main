@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import EMRModel from "../models/emr.model.js";
 import patientModel from "../models/patient.model.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
@@ -34,8 +35,9 @@ export const createEMR = async (req, res) => {
             reportUrls = await Promise.all(files.map((file) => uploadToCloudinary(file.buffer, "emr/reports", file.mimetype === "application/pdf" ? "raw" : "image")));
         }
         const emr = await EMRModel.create({
-            aadhar: Number(body.aadhar),
+            aadhar: body.aadhar ? Number(body.aadhar) : undefined,
             doctorId,
+            patientId,
             allergies,
             diseases,
             pastSurgeries,
@@ -95,12 +97,19 @@ export const getEMRByAadhar = async (req, res) => {
     try {
         const { aadhar } = req.params;
         if (!aadhar) {
-            return res.status(400).json({ message: "Aadhar number is required" });
+            return res.status(400).json({ message: "Aadhar or Patient ID is required" });
         }
-        // find all EMRs that match this Aadhar number
-        const emrRecords = await EMRModel.find({ aadhar }).sort({ createdAt: -1 });
+        const query = {};
+        if (mongoose.Types.ObjectId.isValid(aadhar)) {
+            query.patientId = aadhar;
+        }
+        else {
+            query.aadhar = Number(aadhar);
+        }
+        // find all EMRs that match this query
+        const emrRecords = await EMRModel.find(query).sort({ createdAt: -1 });
         if (!emrRecords || emrRecords.length === 0) {
-            return res.status(404).json({ message: "No EMR found for this Aadhar number" });
+            return res.status(404).json({ message: "No EMR found for this identifier" });
         }
         return res.status(200).json({
             message: "EMR records fetched successfully",
@@ -108,7 +117,7 @@ export const getEMRByAadhar = async (req, res) => {
         });
     }
     catch (error) {
-        console.error("Error fetching EMR by Aadhar:", error);
-        return res.status(500).json({ message: "Error fetching EMR by Aadhar" });
+        console.error("Error fetching EMR:", error);
+        return res.status(500).json({ message: "Error fetching EMR data" });
     }
 };

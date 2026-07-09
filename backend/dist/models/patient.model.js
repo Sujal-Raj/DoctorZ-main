@@ -56,6 +56,15 @@ const patientSchema = new mongoose.Schema({
             type: Number,
         },
     },
+    insuranceProvider: {
+        type: String,
+    },
+    insurancePolicyNumber: {
+        type: String,
+    },
+    familyId: {
+        type: String,
+    },
     favouriteDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Doctor" }],
     favouriteClinics: [{ type: mongoose.Schema.Types.ObjectId, ref: "Clinic" }],
 }, { timestamps: true });

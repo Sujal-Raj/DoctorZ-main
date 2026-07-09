@@ -5,6 +5,7 @@ import offlineBooking from "../models/OfflineBookingModel.js";
 import { LabTestBookingModel, PackageBookingModel } from "../models/lab.model.js";
 import doctorModel from "../models/doctor.model.js";
 import clinicModel from "../models/clinic.model.js";
+import billModel from "../models/bill.model.js";
 
 // ==========================================
 // DOCTOR EARNINGS CALCULATIONS
@@ -128,10 +129,7 @@ export const getClinicRevenue = async (req: Request, res: Response) => {
   try {
     const { clinicId } = req.params;
 
-    const clinic = await clinicModel.findById(clinicId);
-    if (!clinic) {
-      return res.status(404).json({ message: "Clinic not found" });
-    }
+    // Remove strict clinic lookup since orphaned staff tokens might trigger a 404 block for valid read ops
 
     const cId = new mongoose.Types.ObjectId(clinicId);
 
@@ -193,6 +191,50 @@ export const getClinicRevenue = async (req: Request, res: Response) => {
       // Group monthly (YYYY-MM)
       const monthKey = b.date.toISOString().slice(0, 7);
       monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + b.fees;
+    });
+
+    // Fetch and aggregate custom bills/invoices payments
+    const bills = await billModel.find({ clinicId: cId })
+      .populate("patientId", "fullName")
+      .lean();
+
+    bills.forEach((bill: any) => {
+      if (bill.paymentHistory && Array.isArray(bill.paymentHistory)) {
+        bill.paymentHistory.forEach((payment: any) => {
+          const payAmt = payment.amount || 0;
+          totalRevenue += payAmt;
+
+          // Group billing desk wise
+          const billDeskId = "billing-desk";
+          if (!doctorWiseMap[billDeskId]) {
+            doctorWiseMap[billDeskId] = { doctorName: "Billing & Invoicing Desk", amount: 0, count: 0 };
+          }
+          doctorWiseMap[billDeskId].amount += payAmt;
+          doctorWiseMap[billDeskId].count += 1;
+
+          // Group daily (YYYY-MM-DD)
+          const payDate = new Date(payment.date);
+          const dayKey = payDate.toISOString().split("T")[0];
+          dailyMap[dayKey] = (dailyMap[dayKey] || 0) + payAmt;
+
+          // Group monthly (YYYY-MM)
+          const monthKey = payDate.toISOString().slice(0, 7);
+          monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + payAmt;
+
+          // Add transaction log
+          allBookings.push({
+            _id: bill._id,
+            doctorId: undefined,
+            doctorName: "Billing Desk",
+            patientName: bill.patientId?.fullName || "Patient",
+            fees: payAmt,
+            date: payDate,
+            paymentMethod: payment.method || "card",
+            transactionId: payment.transactionId || "—",
+            type: `invoice (${bill.invoiceNumber})`
+          });
+        });
+      }
     });
 
     // Format maps into arrays

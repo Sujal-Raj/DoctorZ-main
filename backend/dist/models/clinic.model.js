@@ -65,7 +65,17 @@ const clinicSchema = new mongoose.Schema({
     mission: {
         type: String,
         default: "To deliver exceptional neurological care through innovation, compassion, and a patient-centered approach that improves quality of life."
-    }
+    },
+    // SaaS Fields
+    subdomain: { type: String, unique: true, sparse: true },
+    allowedFeatures: { type: [String], default: ["OPD", "EMR", "Billing", "HR", "Inventory"] },
+    logo: { type: String },
+    primaryColor: { type: String, default: "#0c213e" },
+    secondaryColor: { type: String, default: "#1a3a5f" },
+    subscriptionPlan: { type: mongoose.Schema.Types.ObjectId, ref: "SubscriptionPlan" },
+    subscriptionExpiresAt: { type: Date },
+    storageLimitGb: { type: Number, default: 5 },
+    storageUsedBytes: { type: Number, default: 0 }
 });
 const clinicModel = mongoose.model("Clinic", clinicSchema, "Clinic");
 export default clinicModel;
