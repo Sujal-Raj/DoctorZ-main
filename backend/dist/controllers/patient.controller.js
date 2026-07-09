@@ -6,7 +6,8 @@ import jwt from "jsonwebtoken";
 import EMRModel from "../models/emr.model.js";
 import Booking from "../models/booking.model.js";
 import PrescriptionModel from "../models/prescription.model.js";
-import { LabTestBookingModel } from "../models/lab.model.js";
+import { LabTestBookingModel, PackageBookingModel } from "../models/lab.model.js";
+import offlineBooking from "../models/OfflineBookingModel.js";
 const patientRegister = async (req, res) => {
     try {
         console.log("Received body:", req.body);
@@ -37,12 +38,12 @@ const patientRegister = async (req, res) => {
             return res.status(400).json({ message: "Email already exists" });
         }
         // Check if Aadhar exists
-        const existingAadhar = await patientModel.findOne({ aadhar: String(aadhar) });
-        if (existingAadhar) {
-            return res
-                .status(400)
-                .json({ message: "Aadhar number already registered" });
-        }
+        // const existingAadhar = await patientModel.findOne({ aadhar:String(aadhar) });
+        // if (existingAadhar) {
+        //   return res
+        //     .status(400)
+        //     .json({ message: "Aadhar number already registered" });
+        // }
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         // Create Patient
@@ -94,13 +95,27 @@ const patientRegister = async (req, res) => {
 const patientLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("Login Email:", email);
+        console.log("Login Identifier:", email);
         if (!email || !password) {
             return res
                 .status(400)
-                .json({ message: "Email and Password are required." });
+                .json({ message: "Email/Mobile and Password are required." });
         }
-        const patient = await patientModel.findOne({ email: email.toLowerCase() });
+        // Determine query based on input format (email or mobile)
+        let query = {};
+        if (email.includes("@")) {
+            query = { email: email.toLowerCase() };
+        }
+        else {
+            const phoneNum = Number(email.replace(/\D/g, ""));
+            if (!isNaN(phoneNum) && phoneNum > 0) {
+                query = { mobileNumber: phoneNum };
+            }
+            else {
+                query = { email: email.toLowerCase() };
+            }
+        }
+        const patient = await patientModel.findOne(query);
         console.log("Found Patient:", patient);
         if (!patient) {
             return res.status(400).json({ message: "Invalid Credentials." });
@@ -180,23 +195,68 @@ const deleteUser = async (req, res) => {
     }
 };
 //--------------------------------------------Get Available Slots By Doctor Id-------------------------
+// const getAvailableSlotsByDoctorId = async (req: Request, res: Response) => {
+//   try {
+//     const { doctorId } = req.params;
+//     if (!doctorId) {
+//       return res.status(400).json({ message: "doctorId is required" });
+//     }
+//     // Fetch only documents for this doctor
+//     const timeSlotDocs = await timeSlotsModel.find({ doctorId });
+//     if (!timeSlotDocs || timeSlotDocs.length === 0) {
+//       return res.status(200).json({
+//         message: "No slots found for this doctor",
+//         availableMonths: [],
+//       });
+//     }
+//     const slotsByMonth: Record<string, any[]> = {};
+//     timeSlotDocs.forEach(doc => {
+//       // Skip if slots array is empty
+//       if (!doc.slots || doc.slots.length === 0) return;
+//       const dateObj = new Date(doc.date);
+//       const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}`;
+//       const dateKey = dateObj.toISOString().split("T")[0];
+//       if (!slotsByMonth[monthKey]) slotsByMonth[monthKey] = [];
+//       slotsByMonth[monthKey].push({
+//         date: dateKey,
+//         slots: doc.slots.map(s => ({
+//           _id: s._id,
+//           time: s.time,
+//           isActive: s.isActive,
+//         })),
+//       });
+//     });
+//     return res.status(200).json({
+//       message: "Available months and slots fetched successfully",
+//       availableMonths: slotsByMonth,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching available slots", error);
+//     return res.status(500).json({
+//       message: "Failed to fetch available slots",
+//       error: error instanceof Error ? error.message : error,
+//     });
+//   }
+// };
 const getAvailableSlotsByDoctorId = async (req, res) => {
     try {
         const { doctorId } = req.params;
+        const { mode } = req.query;
         if (!doctorId) {
             return res.status(400).json({ message: "doctorId is required" });
         }
-        // Fetch only documents for this doctor
-        const timeSlotDocs = await timeSlotsModel.find({ doctorId });
+        const query = { doctorId };
+        if (mode)
+            query.mode = mode;
+        const timeSlotDocs = await timeSlotsModel.find(query);
         if (!timeSlotDocs || timeSlotDocs.length === 0) {
             return res.status(200).json({
                 message: "No slots found for this doctor",
-                availableMonths: [],
+                availableMonths: {},
             });
         }
         const slotsByMonth = {};
         timeSlotDocs.forEach(doc => {
-            // Skip if slots array is empty
             if (!doc.slots || doc.slots.length === 0)
                 return;
             const dateObj = new Date(doc.date);
@@ -248,27 +308,44 @@ const updatePatient = async (req, res) => {
 const getBookedDoctor = async (req, res) => {
     try {
         const { id } = req.params;
-        // Sirf pending bookings fetch karenge
+        // Fetch pending online bookings
         const bookings = await Booking.find({
             userId: id,
-            status: 'pending' // yaha sirf pending bookings
+            status: 'pending'
         }).populate('doctorId');
-        console.log("here", bookings);
-        // Agar koi bookings milti hain
-        if (bookings.length === 0) {
-            return res.status(404).json({
-                message: "No pending bookings found"
-            });
-        }
-        // Response me doctor details aur booking date bhejna
-        const result = bookings.map(b => ({
+        // Fetch pending offline bookings
+        const offlineBookings = await offlineBooking.find({
+            userId: id,
+            status: 'pending',
+        }).populate('doctorId');
+        // Map online bookings
+        const onlineResult = bookings.map(b => ({
+            type: 'online',
             doctor: b.doctorId,
             bookingDate: b.dateTime,
+            slot: b.slot,
             roomId: b.roomId,
+            meetingLink: b.meetingLink,
+            fees: b.fees,
+            status: b.status,
+        }));
+        // Map offline bookings
+        const offlineResult = offlineBookings.map(b => ({
+            type: 'offline',
+            doctor: b.doctorId,
+            bookingDate: b.date,
+            slot: null,
+            tokenNumber: b.tokenNumber,
+            fees: b.fees,
+            status: b.status,
+            paid: b.paid,
         }));
         return res.status(200).json({
             message: "Pending bookings fetched successfully",
-            data: result
+            data: {
+                online: onlineResult,
+                offline: offlineResult,
+            }
         });
     }
     catch (error) {
@@ -414,10 +491,28 @@ export const getUserLabTest = async (req, res) => {
     try {
         const labTests = await LabTestBookingModel.find({ userId: id })
             .populate("labId", "name city address")
-            .sort({ bookedAt: -1 });
+            .lean();
+        const packageBookings = await PackageBookingModel.find({ userId: id })
+            .populate("labId", "name city address")
+            .populate("packageId", "packageName")
+            .lean();
+        const formattedTestBookings = labTests.map((b) => ({
+            ...b,
+            bookingType: "test",
+        }));
+        const formattedPackageBookings = packageBookings.map((b) => ({
+            ...b,
+            bookingType: "package",
+            testName: b.packageId?.packageName || "Package Booking",
+        }));
+        const allBookings = [...formattedTestBookings, ...formattedPackageBookings].sort((a, b) => {
+            const dateA = a.bookedAt ? new Date(a.bookedAt).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.bookedAt ? new Date(b.bookedAt).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
         return res.status(200).json({
             success: true,
-            labTests,
+            labTests: allBookings,
         });
     }
     catch (err) {

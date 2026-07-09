@@ -10,8 +10,9 @@ import {
 const inventoryRouter = express.Router();
 
 inventoryRouter.post("/add", addInventoryItem);
-// Get all inventory items by clinic
+// Get all inventory items by clinic or lab
 inventoryRouter.get("/clinic/:clinicId", getInventoryItems);
+inventoryRouter.get("/lab/:labId", getInventoryItems);
 
 // Get single inventory item
 inventoryRouter.get("/:id", getSingleInventoryItem);

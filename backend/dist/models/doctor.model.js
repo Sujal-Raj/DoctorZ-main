@@ -78,6 +78,15 @@ const doctorSchema = new mongoose.Schema({
         },
     ],
     status: { type: String, default: "pending" },
+    availableOnline: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
+    listOfMedicine: {
+        type: [String],
+        default: [],
+    },
     // -----------------------
     // ⭐ Added Notifications
     // -----------------------
@@ -103,6 +112,24 @@ const doctorSchema = new mongoose.Schema({
             },
         },
     ],
+    //for feedback
+    feedback: [
+        {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            rating: Number,
+            comment: String,
+            createdAt: { type: Date, default: Date.now }
+        }
+    ],
+    totalRating: {
+        type: Number,
+        // required:true
+        default: 0
+    },
+    ratingCount: {
+        type: Number,
+        default: 0,
+    }
 });
 const doctorModel = mongoose.model("Doctor", doctorSchema, "Doctor");
 export default doctorModel;

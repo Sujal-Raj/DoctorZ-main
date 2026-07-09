@@ -10,7 +10,7 @@ import EMRModel from "../models/emr.model.js";
 import Booking from "../models/booking.model.js";
 import { FaV } from "react-icons/fa6";
 import PrescriptionModel from "../models/prescription.model.js";
-import { LabModel, LabTestBookingModel } from "../models/lab.model.js";
+import { LabModel, LabTestBookingModel, PackageBookingModel } from "../models/lab.model.js";
 import offlineBooking from "../models/OfflineBookingModel.js";
 
 const patientRegister = async (req: Request, res: Response) => {
@@ -134,15 +134,28 @@ const patientRegister = async (req: Request, res: Response) => {
 const patientLogin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    console.log("Login Email:", email);
+    console.log("Login Identifier:", email);
 
     if (!email || !password) {
       return res
         .status(400)
-        .json({ message: "Email and Password are required." });
+        .json({ message: "Email/Mobile and Password are required." });
     }
 
-    const patient = await patientModel.findOne({ email: email.toLowerCase() });
+    // Determine query based on input format (email or mobile)
+    let query: any = {};
+    if (email.includes("@")) {
+      query = { email: email.toLowerCase() };
+    } else {
+      const phoneNum = Number(email.replace(/\D/g, ""));
+      if (!isNaN(phoneNum) && phoneNum > 0) {
+        query = { mobileNumber: phoneNum };
+      } else {
+        query = { email: email.toLowerCase() };
+      }
+    }
+
+    const patient = await patientModel.findOne(query);
     console.log("Found Patient:", patient);
     if (!patient) {
       return res.status(400).json({ message: "Invalid Credentials." });
@@ -592,11 +605,33 @@ export const getUserLabTest = async (req: Request, res: Response) => {
   try {
     const labTests = await LabTestBookingModel.find({ userId: id })
       .populate("labId", "name city address")
-      .sort({ bookedAt: -1 });
+      .lean();
+
+    const packageBookings = await PackageBookingModel.find({ userId: id })
+      .populate("labId", "name city address")
+      .populate("packageId", "packageName")
+      .lean();
+
+    const formattedTestBookings = labTests.map((b: any) => ({
+      ...b,
+      bookingType: "test",
+    }));
+
+    const formattedPackageBookings = packageBookings.map((b: any) => ({
+      ...b,
+      bookingType: "package",
+      testName: b.packageId?.packageName || "Package Booking",
+    }));
+
+    const allBookings = [...formattedTestBookings, ...formattedPackageBookings].sort((a, b) => {
+      const dateA = a.bookedAt ? new Date(a.bookedAt).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.bookedAt ? new Date(b.bookedAt).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
     return res.status(200).json({
       success: true,
-      labTests,
+      labTests: allBookings,
     });
   } catch (err) {
     console.log("Error fetching lab tests:", err);

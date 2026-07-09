@@ -4,6 +4,7 @@ import tokenCounter from "../models/tokenCounter.model.js";
 import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
 import doctorModel from "../models/doctor.model.js";
+import { sendSimulatedAlert } from "../utils/smsHelper.js";
 import EMRModel from "../models/emr.model.js";
 import mongoose from "mongoose";
 
@@ -409,8 +410,22 @@ export const bookToken = async (req: any, res: Response) => {
       fees: (doctor as any).consultationFee,
       status: "pending",
       bookedBy: isReceptionist ? "receptionist" : "patient",
-      paid,
+      paid: paid,
+      clinicId: isReceptionist ? req.user.clinic : null,
+      paymentStatus: paid ? "paid" : "unpaid",
+      paymentDate: paid ? new Date() : null,
+      paymentMethod: paid ? "cash" : null,
     });
+
+    if (booking.clinicId) {
+      sendSimulatedAlert({
+        clinicId: booking.clinicId,
+        patientId: patient._id,
+        type: "Appointment",
+        recipientPhone: String(patient.mobileNumber),
+        message: `Hello ${patient.fullName}, your token #${counter.seq} with Dr. ${doctor.fullName} is booked for ${new Date(date).toLocaleDateString()}. Thank you for choosing DoctorZ.`,
+      }).catch(err => console.error("Simulated alert error:", err));
+    }
 
     return res.status(201).json({
       success: true,
@@ -456,7 +471,7 @@ export const updateOfflineBookingStatus = async (req: Request, res: Response) =>
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["pending", "completed", "cancelled"].includes(status)) {
+    if (!["pending", "completed", "cancelled", "registered", "waiting", "in-consultation"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value." });
     }
 

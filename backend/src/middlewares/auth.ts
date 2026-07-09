@@ -34,6 +34,7 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
+    req.body = req.body || {};
     req.body.doctor = doctor;
     next();
   } catch (error) {
@@ -75,6 +76,7 @@ export const verifyPatientToken = async (req: Request, res: Response, next: Next
       return res.status(404).json({ message: 'Patient not found' });
     }
 
+    req.body = req.body || {};
     req.body.patient = patient;
     next();
   } catch (error) {
@@ -112,6 +114,7 @@ export const verifyClinicToken = async (req: Request, res: Response, next: NextF
     }
 
     // Attach clinic info to request object for downstream handlers
+    req.body = req.body || {};
     req.body.clinic = clinic;
     next();
   } catch (error) {
@@ -152,3 +155,51 @@ export const receptionistVerifyToken = async (req:Request,res:Response,next:Next
     return res.status(401).json({ message: "Invalid token" });
   }
 }
+
+export const verifyLabToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authorization header missing or malformed" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Token is undefined or missing" });
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ message: "JWT secret is not configured" });
+    }
+
+    const decoded = jwt.verify(token, secret) as { id: string; role: string };
+
+    if (decoded.role !== "lab") {
+      return res.status(403).json({ message: "Access denied. Only lab agencies allowed." });
+    }
+
+    (req as any).user = decoded;
+    next();
+  } catch (error) {
+    console.error("Lab token verification error:", error);
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
+export const anyStaffVerifyToken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    (req as any).user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};

@@ -1,7 +1,13 @@
 import mongoose, { Schema } from "mongoose";
 const bookingSchema = new Schema({
     doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
-    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "Patient", required: false },
+    bookedBy: {
+        type: String,
+        enum: ["patient", "receptionist"],
+        required: true,
+        default: "patient"
+    },
     patient: {
         type: Object,
         required: true,
@@ -18,7 +24,7 @@ const bookingSchema = new Schema({
     fees: { type: Number, required: true },
     status: {
         type: String,
-        enum: ["pending", "completed"],
+        enum: ["pending", "completed", "registered", "waiting", "in-consultation", "cancelled"],
         default: "pending",
         required: true,
     },
@@ -26,6 +32,35 @@ const bookingSchema = new Schema({
         type: String,
         required: true,
     },
+    meetingLink: {
+        type: String,
+        // required:true,
+    },
+    clinicId: {
+        type: Schema.Types.ObjectId,
+        ref: "Clinic",
+        required: false,
+        default: null,
+    },
+    paymentStatus: {
+        type: String,
+        enum: ["paid", "unpaid", "pending"],
+        default: "unpaid",
+        required: true,
+    },
+    paymentDate: {
+        type: Date,
+        required: false,
+    },
+    paymentMethod: {
+        type: String,
+        enum: ["cash", "upi", "card", "netbanking", "other"],
+        required: false,
+    },
+    transactionId: {
+        type: String,
+        required: false,
+    }
 }, { timestamps: true });
 const Booking = mongoose.model("Booking", bookingSchema);
 export default Booking;

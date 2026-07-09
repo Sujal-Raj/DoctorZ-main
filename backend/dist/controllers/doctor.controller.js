@@ -5,65 +5,137 @@ import Booking from "../models/booking.model.js";
 import jwt from "jsonwebtoken";
 import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+// const doctorRegister = async (req: Request, res: Response) => {
+//   try {
+//     console.log("Text fields:", req.body);
+//     console.log("Files:", req.files);
+//     const files = req.files as MulterFiles | undefined;
+//     const experience = Number(req.body.experience);
+//     const consultationFee = Number(req.body.fees);
+//     const Aadhar = Number(req.body.aadhar);
+//     const Address = req.body.address;
+//     const State = req.body.state;
+//     const City = req.body.city;
+//     const dob = new Date(req.body.dob);
+//     const MobileNo = req.body.mobileNo;
+//     const email = req.body.email;
+//     const degreeCert = files?.["degreeCert"]?.[0]?.filename || "";
+//     const photo = files?.["photo"]?.[0]?.filename || "";
+//     const signature = files?.["signature"]?.[0]?.filename || "";
+//     if (!req.body.password) {
+//       return res.status(400).json({ message: "Password is required" });
+//     }
+//     const hashedPassword = await bcrypt.hash(req.body.password, 10);
+//     const clinicId = req.body.clinicId;
+//     const doctor = new doctorModel({
+//       fullName: req.body.fullName,
+//       password: hashedPassword,
+//       gender: req.body.gender,
+//       dob,
+//       MobileNo,
+//       MedicalRegistrationNumber: req.body.regNumber,
+//       specialization: req.body.specialization || "",
+//       qualification: req.body.qualification,
+//       experience,
+//       consultationFee,
+//       language: req.body.languages || "",
+//       Aadhar,
+//       Address,
+//       State,
+//       City,
+//       DegreeCertificate: degreeCert,
+//       photo,
+//       signature,
+//       email,
+//       clinic: clinicId,
+//       status: "pending",
+//     });
+//     if (clinicId) {
+//       await clinicModel.findByIdAndUpdate(clinicId, {
+//         $push: { doctors: doctor._id },
+//       });
+//     }
+//     await doctor.save();
+//     return res.status(201).json({ message: "Doctor registered", doctor });
+//   } catch (error) {
+//     console.error("Registration error:", error);
+//     return res.status(500).json({ message: "Registration failed", error });
+//   }
+// };
 const doctorRegister = async (req, res) => {
     try {
-        console.log("Text fields:", req.body);
-        console.log("Files:", req.files);
+        console.log("Incoming request: POST /api/doctor/register");
+        console.log("BODY:", req.body);
+        console.log("FILES:", req.files);
         const files = req.files;
-        // Convert data types
-        const experience = Number(req.body.experience);
-        const consultationFee = Number(req.body.fees);
-        const Aadhar = Number(req.body.aadhar);
-        const Address = req.body.address;
-        const State = req.body.state;
-        const City = req.body.city;
-        const dob = new Date(req.body.dob);
-        const MobileNo = req.body.mobileNo;
-        const email = req.body.email;
-        // Handle uploaded files
-        const degreeCert = files?.["degreeCert"]?.[0]?.filename || "";
-        const photo = files?.["photo"]?.[0]?.filename || "";
-        const signature = files?.["signature"]?.[0]?.filename || "";
-        if (!req.body.password) {
-            return res.status(400).json({ message: "Password is required" });
+        // ---------- FILE VALIDATION ----------
+        if (!files?.degreeCert?.[0]) {
+            return res.status(400).json({ message: "Degree certificate is required" });
         }
+        if (!files?.photo?.[0]) {
+            return res.status(400).json({ message: "Photo is required" });
+        }
+        if (!files?.signature?.[0]) {
+            return res.status(400).json({ message: "Signature is required" });
+        }
+        // ---------- UPLOAD TO CLOUDINARY ----------
+        let degreeCertUrl = "";
+        let photoUrl = "";
+        let signatureUrl = "";
+        try {
+            degreeCertUrl = await uploadToCloudinary(files.degreeCert[0].buffer, "doctors/degree", files.degreeCert[0].mimetype === "application/pdf" ? "raw" : "image");
+            photoUrl = await uploadToCloudinary(files.photo[0].buffer, "doctors/photos");
+            signatureUrl = await uploadToCloudinary(files.signature[0].buffer, "doctors/signatures");
+        }
+        catch (uploadError) {
+            console.error("Cloudinary upload error:", uploadError);
+            return res.status(400).json({ message: "File upload failed" });
+        }
+        // ---------- PROCESS BOOLEAN ----------
+        const availableOnline = req.body.availableOnline === "true";
+        // ---------- HASH PASSWORD ----------
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        const clinicId = req.body.clinicId;
+        // ---------- CREATE DOCTOR ----------
         const doctor = new doctorModel({
             fullName: req.body.fullName,
             password: hashedPassword,
             gender: req.body.gender,
-            dob,
-            MobileNo,
+            dob: new Date(req.body.dob),
+            MobileNo: req.body.mobileNo,
             MedicalRegistrationNumber: req.body.regNumber,
-            specialization: req.body.specialization || "",
+            specialization: req.body.specialization,
             qualification: req.body.qualification,
-            experience,
-            consultationFee,
-            language: req.body.languages || "",
-            Aadhar,
-            Address,
-            State,
-            City,
-            DegreeCertificate: degreeCert,
-            photo,
-            signature,
-            email,
-            clinic: clinicId,
+            experience: Number(req.body.experience),
+            consultationFee: Number(req.body.fees),
+            language: req.body.languages,
+            Aadhar: Number(req.body.aadhar),
+            Address: req.body.address,
+            State: req.body.state,
+            City: req.body.city,
+            DegreeCertificate: degreeCertUrl,
+            photo: photoUrl,
+            signature: signatureUrl,
+            email: req.body.email,
+            clinic: req.body.clinicId || null,
+            availableOnline: availableOnline, // ✅ added
             status: "pending",
         });
-        // Add doctor reference to clinic
-        if (clinicId) {
-            await clinicModel.findByIdAndUpdate(clinicId, {
+        await doctor.save();
+        // ---------- LINK DOCTOR TO CLINIC ----------
+        if (req.body.clinicId) {
+            await clinicModel.findByIdAndUpdate(req.body.clinicId, {
                 $push: { doctors: doctor._id },
             });
         }
-        await doctor.save();
-        return res.status(201).json({ message: "Doctor registered", doctor });
+        return res.status(201).json({
+            message: "Doctor registered successfully",
+            doctor,
+        });
     }
     catch (error) {
-        console.error("Registration error:", error);
-        return res.status(500).json({ message: "Registration failed", error });
+        console.error("Doctor registration error:", error);
+        return res.status(500).json({ message: "Registration failed" });
     }
 };
 // ==========================
@@ -115,7 +187,7 @@ const doctorLogin = async (req, res) => {
 const getDoctorById = async (req, res) => {
     try {
         const { id } = req.params;
-        const doctor = await doctorModel.findById(id);
+        const doctor = await doctorModel.findById(id).populate("clinic", "clinicName");
         if (!doctor) {
             return res.status(400).json({ message: "Doctor not found" });
         }
@@ -220,8 +292,13 @@ const updateDoctorData = async (req, res) => {
     try {
         const doctorId = req.params.id;
         const updates = { ...req.body };
-        //  Block fields that should never be updated directly
-        const blockedFields = ["notifications", "clinic", "DegreeCertificate", "signature", "doctorId"];
+        const blockedFields = [
+            "notifications",
+            "clinic",
+            "DegreeCertificate",
+            "signature",
+            "doctorId",
+        ];
         blockedFields.forEach((field) => delete updates[field]);
         // convert number fields
         const numberFields = ["experience", "consultationFee", "Aadhar"];
@@ -230,17 +307,22 @@ const updateDoctorData = async (req, res) => {
                 updates[field] = Number(updates[field]);
             }
         });
-        // MobileNo should always be string
         if (updates.MobileNo) {
             updates.MobileNo = String(updates.MobileNo);
         }
-        // Date field
         if (updates.dob) {
             updates.dob = new Date(updates.dob);
         }
-        // photo upload
+        // ✅ FIX: Upload photo to Cloudinary
         if (req.file) {
-            updates.photo = req.file.filename;
+            try {
+                const photoUrl = await uploadToCloudinary(req.file.buffer, "doctors/photos");
+                updates.photo = photoUrl; // Save Cloudinary URL
+            }
+            catch (uploadError) {
+                console.error("Cloudinary upload error:", uploadError);
+                return res.status(400).json({ message: "Photo upload failed" });
+            }
         }
         const updatedDoctor = await doctorModel.findByIdAndUpdate(doctorId, { $set: updates }, { new: true });
         if (!updatedDoctor) {
@@ -373,21 +455,34 @@ export const acceptDoctorRequest = async (req, res) => {
         const doctor = await doctorModel.findById(doctorId);
         if (!doctor)
             return res.status(404).json({ message: "Doctor not found" });
-        // update status
         const notif = doctor.notifications.find((n) => n._id.toString() === notificationId);
         if (!notif) {
             return res.status(404).json({ message: "Notification not found" });
         }
+        // ✅ Update notification
         notif.status = "accepted";
-        // add clinic to doctor profile
-        if (!doctor.clinic.includes(clinicId)) {
+        doctor.markModified("notifications");
+        // ✅ Add clinic to doctor
+        doctor.clinic = doctor.clinic || [];
+        if (!doctor.clinic.some(id => id.toString() === clinicId)) {
             doctor.clinic.push(clinicId);
         }
         await doctor.save();
+        // ✅ IMPORTANT: Update clinic with doctor
+        const clinic = await clinicModel.findById(clinicId);
+        if (!clinic) {
+            return res.status(404).json({ message: "Clinic not found" });
+        }
+        clinic.doctors = clinic.doctors || [];
+        if (!clinic.doctors.some(id => id.toString() === doctorId)) {
+            clinic.doctors.push(doctorId);
+        }
+        await clinic.save();
         res.json({ message: "Request accepted" });
     }
     catch (error) {
-        res.json({ message: "Error accepting request" });
+        console.error(error);
+        res.status(500).json({ message: "Error accepting request" });
     }
 };
 export const rejectDoctorRequest = async (req, res) => {
@@ -408,6 +503,130 @@ export const rejectDoctorRequest = async (req, res) => {
         res.json({ message: "Error rejecting request" });
     }
 };
+export const addReview = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        const { userId, comment, rating } = req.body;
+        if (!comment || !rating) {
+            return res.status(400).json({ message: "Feedback is required" });
+        }
+        const doctor = await doctorModel.findById(doctorId);
+        if (!doctor) {
+            return res.status(404).json({ message: "Doctor not found" });
+        }
+        doctor.totalRating += rating;
+        doctor.ratingCount += 1;
+        doctor.feedback.push({ userId, comment, rating, createdAt: new Date() });
+        await doctor.save();
+        return res.status(200).json({
+            message: "Feedback added successfully",
+            data: doctor
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Something went wrong" });
+    }
+};
+// Controller: doctorController.ts
+const addMedicineToList = async (req, res) => {
+    try {
+        const { doctorId, medicines } = req.body;
+        if (!doctorId || !medicines || !Array.isArray(medicines) || medicines.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Doctor ID and medicines array are required"
+            });
+        }
+        // Remove duplicates and empty strings
+        const cleanedMedicines = [...new Set(medicines.filter(m => m.trim() !== ''))];
+        const doctor = await doctorModel.findById(doctorId);
+        if (!doctor) {
+            return res.status(404).json({
+                success: false,
+                message: "Doctor not found"
+            });
+        }
+        // Add new medicines to existing list (avoid duplicates)
+        const existingMedicines = doctor.listOfMedicine || [];
+        const updatedMedicines = [...new Set([...existingMedicines, ...cleanedMedicines])];
+        doctor.listOfMedicine = updatedMedicines;
+        await doctor.save();
+        res.status(200).json({
+            success: true,
+            message: "Medicines added successfully",
+            listOfMedicine: doctor.listOfMedicine
+        });
+    }
+    catch (error) {
+        console.error("Error adding medicines:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to add medicines"
+        });
+    }
+};
+const getMedicineList = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        if (!doctorId) {
+            return res.status(400).json({
+                success: false,
+                message: "Doctor ID is required"
+            });
+        }
+        const doctor = await doctorModel.findById(doctorId).select('listOfMedicine');
+        if (!doctor) {
+            return res.status(404).json({
+                success: false,
+                message: "Doctor not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            listOfMedicine: doctor.listOfMedicine || []
+        });
+    }
+    catch (error) {
+        console.error("Error fetching medicines:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch medicines"
+        });
+    }
+};
+const deleteMedicineFromList = async (req, res) => {
+    try {
+        const { doctorId, medicineName } = req.body;
+        if (!doctorId || !medicineName) {
+            return res.status(400).json({
+                success: false,
+                message: "Doctor ID and medicine name are required"
+            });
+        }
+        const doctor = await doctorModel.findById(doctorId);
+        if (!doctor) {
+            return res.status(404).json({
+                success: false,
+                message: "Doctor not found"
+            });
+        }
+        doctor.listOfMedicine = (doctor.listOfMedicine || []).filter(m => m !== medicineName);
+        await doctor.save();
+        res.status(200).json({
+            success: true,
+            message: "Medicine deleted successfully",
+            listOfMedicine: doctor.listOfMedicine
+        });
+    }
+    catch (error) {
+        console.error("Error deleting medicine:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete medicine"
+        });
+    }
+};
 export default {
     getAllDoctors,
     doctorRegister,
@@ -423,4 +642,7 @@ export default {
     getDoctorNotifications,
     acceptDoctorRequest,
     rejectDoctorRequest,
+    addMedicineToList,
+    deleteMedicineFromList,
+    getMedicineList,
 };

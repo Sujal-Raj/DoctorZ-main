@@ -5,6 +5,11 @@ const emrSchema = new mongoose.Schema({
         ref: "Doctor",
         default: null,
     },
+    patientId: {
+        type: Schema.Types.ObjectId,
+        ref: "Patient",
+        required: false,
+    },
     aadhar: {
         type: Number,
         default: null,

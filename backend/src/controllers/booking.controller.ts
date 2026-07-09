@@ -13,7 +13,7 @@ export const bookAppointment = async (req: Request, res: Response) => {
     const patient = req.body.patient ? JSON.parse(req.body.patient) : null;
     const emr = req.body.emr ? JSON.parse(req.body.emr) : null;
 
-    const { doctorId, slot, slotId, dateTime, mode, fees, userId } = req.body;
+    const { doctorId, slot, slotId, dateTime, mode, fees, userId, clinicId } = req.body;
 
     // Uploaded files
     const files = req.files as Express.Multer.File[]; // Multer handles files
@@ -47,11 +47,11 @@ export const bookAppointment = async (req: Request, res: Response) => {
       dateTime: new Date(dateTime),
       mode,
       fees,
-      // emrId: newEmr?._id || null,
-      // status: "booked",
       roomId,
       status: "pending",
       patient: { name, age, gender, aadhar, contact, relation },
+      clinicId: clinicId || null,
+      paymentStatus: "unpaid",
     });
 
     // Create EMR if any EMR data or reports exist
@@ -78,6 +78,19 @@ export const bookAppointment = async (req: Request, res: Response) => {
       { "slots._id": slotId },
       { $set: { "slots.$.isActive": false } }
     );
+
+    // [DEMO NOTIFICATION] Send WhatsApp confirmation
+    if (clinicId && patient.contact) {
+      import("../utils/smsHelper.js").then(({ sendSimulatedAlert }) => {
+        sendSimulatedAlert({
+          clinicId,
+          patientId: (booking as any)._id.toString(),
+          type: "Appointment",
+          recipientPhone: patient.contact,
+          message: `Hello ${patient.name}, your appointment is confirmed for ${new Date(dateTime).toLocaleString()} with Doctor ID: ${doctorId}.`,
+        });
+      }).catch(err => console.error("Notification dispatch failed", err));
+    }
 
     return res.status(201).json({
       message: "Appointment booked successfully",

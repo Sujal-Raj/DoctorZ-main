@@ -6,6 +6,7 @@ import bookingModel from "../models/booking.model.js";
 import patientModel from "../models/patient.model.js";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import receptionModel from "../models/reception.model.js";
 dotenv.config();
 console.log("MAIL_USER:", process.env.MAIL_USER);
 const transporter = nodemailer.createTransport({
@@ -16,32 +17,153 @@ const transporter = nodemailer.createTransport({
     },
 });
 // ---------------- Clinic Registration ----------------
+// export const clinicRegister = async (req: Request, res: Response) => {
+//   try {
+//       console.log("🟡 Incoming registration request...");
+//     console.log("➡️ Body:", req.body);
+//     console.log("➡️ Files:", req.files); // 👈 this will tell you if multer is working
+//     const {
+//       clinicName,
+//       clinicType,
+//       specialities,
+//       operatingHours,
+//       licenseNo,
+//       ownerAadhar,
+//       ownerPan,
+//       address,     
+//       state,
+//       district,
+//       pincode,
+//       contact,
+//       email,
+//       staffEmail,
+//       staffName,
+//       staffPassword,
+//       staffId,
+//     } = req.body;
+//     if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
+//       return res.status(400).json({ message: "All required fields must be filled." });
+//     }
+// // Multer provides the uploaded file here
+// const registrationCertPath =
+//   req.files &&
+//   'registrationCert' in req.files &&
+//   Array.isArray((req.files as any)['registrationCert']) &&
+//   (req.files as any)['registrationCert'].length > 0
+//     ? `http://localhost:3000/uploads/${(((req.files as any)['registrationCert'] as Express.Multer.File[])[0])?.filename}`
+//     : undefined;
+// const clinicImagePath =
+//   req.files &&
+//   'clinicImage' in req.files &&
+//   Array.isArray((req.files as any)['clinicImage']) &&
+//   (req.files as any)['clinicImage'].length > 0
+//     ? `http://localhost:3000/uploads/${(((req.files as any)['clinicImage'] as Express.Multer.File[])[0])?.filename}`
+//     : undefined;
+//     const clinic = new clinicModel({
+//       clinicName,
+//       clinicType,
+//       specialities,
+//       operatingHours,
+//       clinicLicenseNumber: licenseNo,
+//       aadharNumber: Number(ownerAadhar),
+//       panNumber: ownerPan,
+//       address,
+//       state,
+//       district,
+//       pincode: Number(pincode),
+//       phone: contact,
+//       email,
+//       staffEmail,
+//       staffName,
+//       staffId,
+//       staffPassword: await bcrypt.hash(staffPassword, 10),
+//       registrationCertificate: registrationCertPath,
+//         clinicImage: clinicImagePath,
+//     });
+//     await clinic.save();
+//     // 📧 Send staff ID via email after saving
+//     try {
+//       await transporter.sendMail({
+//         from: process.env.MAIL_USER,
+//         to: staffEmail,
+//         subject: "Your Staff ID for Clinic Registration",
+//         html: `
+//           <p>Hi <b>${staffName}</b>,</p>
+//           <p>Your staff account has been created successfully!</p>
+//           <p><strong>Staff ID:</strong> ${staffId}</p>
+//           <p>Please use this ID along with your password to login.</p>
+//           <br/>
+//           <p>Thanks,<br/>Clinic Management Team</p>
+//         `,
+//       });
+//       console.log(" Staff ID email sent to:", staffEmail);
+//     } catch (mailErr) {
+//       console.error(" Failed to send email:", mailErr);
+//     }
+//     return res.status(201).json({ message: "Clinic Registered", clinic });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: "Something went wrong", error });
+//   }
+// };
+// Generate RCP-XXXXX (5 random digits)
+const generateReceptionistId = () => {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
+    return `RCP-${randomNumber}`;
+};
+// Generate secure random password (8 characters)
+const generatePassword = (length = 8) => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+};
 export const clinicRegister = async (req, res) => {
     try {
         console.log("🟡 Incoming registration request...");
         console.log("➡️ Body:", req.body);
-        console.log("➡️ Files:", req.files); // 👈 this will tell you if multer is working
-        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, staffEmail, staffName, staffPassword, staffId, } = req.body;
+        console.log("➡️ Files:", req.files);
+        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, staffEmail, staffName, staffPassword, staffId, subscriptionPlan, } = req.body;
         if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
-            return res.status(400).json({ message: "All required fields must be filled." });
+            return res.status(400).json({
+                message: "All required fields must be filled.",
+            });
         }
-        // Multer provides the uploaded file here
+        // 🔐 Generate Receptionist Credentials
+        const receptionistId = generateReceptionistId();
+        const receptionistPassword = generatePassword(10);
+        // Hash password
+        const hashedReceptionistPassword = await bcrypt.hash(receptionistPassword, 10);
+        console.log("Reception details :", receptionistId, receptionistPassword);
+        // ✅ Parse specialities (ONLY ONCE)
+        let parsedSpecialities = [];
+        try {
+            parsedSpecialities = JSON.parse(specialities);
+        }
+        catch {
+            parsedSpecialities = [];
+        }
+        // ✅ Multer file handling
         const registrationCertPath = req.files &&
-            'registrationCert' in req.files &&
-            Array.isArray(req.files['registrationCert']) &&
-            req.files['registrationCert'].length > 0
-            ? `http://localhost:3000/uploads/${(req.files['registrationCert'][0])?.filename}`
+            "registrationCert" in req.files &&
+            Array.isArray(req.files["registrationCert"]) &&
+            req.files["registrationCert"].length > 0
+            ? `http://localhost:3000/uploads/${req.files["registrationCert"][0]
+                ?.filename}`
             : undefined;
         const clinicImagePath = req.files &&
-            'clinicImage' in req.files &&
-            Array.isArray(req.files['clinicImage']) &&
-            req.files['clinicImage'].length > 0
-            ? `http://localhost:3000/uploads/${(req.files['clinicImage'][0])?.filename}`
+            "clinicImage" in req.files &&
+            Array.isArray(req.files["clinicImage"]) &&
+            req.files["clinicImage"].length > 0
+            ? `http://localhost:3000/uploads/${req.files["clinicImage"][0]
+                ?.filename}`
             : undefined;
         const clinic = new clinicModel({
             clinicName,
             clinicType,
-            specialities,
+            specialities: parsedSpecialities, // ✅ CLEAN ARRAY
             operatingHours,
             clinicLicenseNumber: licenseNo,
             aadharNumber: Number(ownerAadhar),
@@ -56,11 +178,16 @@ export const clinicRegister = async (req, res) => {
             staffName,
             staffId,
             staffPassword: await bcrypt.hash(staffPassword, 10),
+            subscriptionPlan,
             registrationCertificate: registrationCertPath,
             clinicImage: clinicImagePath,
         });
         await clinic.save();
-        // 📧 Send staff ID via email after saving
+        await receptionModel.create({
+            receptionId: receptionistId,
+            password: hashedReceptionistPassword,
+            clinic: clinic._id,
+        });
         try {
             await transporter.sendMail({
                 from: process.env.MAIL_USER,
@@ -72,19 +199,33 @@ export const clinicRegister = async (req, res) => {
           <p><strong>Staff ID:</strong> ${staffId}</p>
           <p>Please use this ID along with your password to login.</p>
           <br/>
+
+           <h3>Receptionist Login Credentials:</h3>
+    <p><strong>ID:</strong> ${receptionistId}</p>
+    <p><strong>Password:</strong> ${receptionistPassword}</p>
+
+    <p>Please change the password after first login.</p>
+    <br/>
+    
           <p>Thanks,<br/>Clinic Management Team</p>
         `,
             });
-            console.log(" Staff ID email sent to:", staffEmail);
+            console.log("Staff ID email sent to:", staffEmail);
         }
         catch (mailErr) {
-            console.error(" Failed to send email:", mailErr);
+            console.error("Failed to send email:", mailErr);
         }
-        return res.status(201).json({ message: "Clinic Registered", clinic });
+        return res.status(201).json({
+            message: "Clinic Registered",
+            clinic,
+        });
     }
     catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Something went wrong", error });
+        return res.status(500).json({
+            message: "Something went wrong",
+            error,
+        });
     }
 };
 // ---------------- Clinic Login ----------------
@@ -118,12 +259,14 @@ export const clinicLogin = async (req, res) => {
         });
         return res.status(200).json({
             message: "Login successful",
+            jwtToken: token,
             clinic: {
                 id: clinic._id,
                 staffId: clinic.staffId,
                 staffName: clinic.staffName,
                 staffEmail: clinic.staffEmail,
                 clinicName: clinic.clinicName,
+                allowedFeatures: clinic.allowedFeatures || [],
             },
         });
     }
@@ -134,33 +277,113 @@ export const clinicLogin = async (req, res) => {
     }
 };
 // // ---------------- Update Clinic ----------------
+// export const updateClinic = async (req: Request, res: Response) => {
+//   try {
+//     const { id } = req.params;
+//     const {
+//       clinicName,
+//       clinicType,
+//       specialities,
+//       operatingHours,
+//       clinicLicenseNumber,
+//       aadharNumber,
+//       panNumber,
+//       address,
+//       district,
+//       pincode,
+//       state,
+//       phone,
+//       email,
+//       staffEmail,
+//       staffPassword,
+//       staffName,
+//       staffId,
+//       doctors,
+//     } = req.body;
+//     const updateData: Partial<IClinic> = {
+//       clinicName,
+//       clinicType,
+//       specialities: Array.isArray(specialities)
+//         ? specialities
+//         : typeof specialities === "string"
+//         ? specialities.split(",").map((s) => s.trim())
+//         : [],
+//       operatingHours,
+//       clinicLicenseNumber,
+//       aadharNumber: Number(aadharNumber),
+//       panNumber,
+//       address,
+//       district,
+//       state,
+//       pincode: Number(pincode),
+//       phone,
+//       email,
+//       staffEmail,
+//       staffName,
+//       staffId,
+//       doctors,
+//     };
+//     // 🔒 Hash new password if provided
+//     if (staffPassword && staffPassword.trim() !== "") {
+//       const hashedPassword = await bcrypt.hash(staffPassword, 10);
+//       updateData.staffPassword = hashedPassword;
+//     }
+//     // Optional file upload handling
+//     if (req.file) {
+//       updateData.registrationCertificate = `http://localhost:3000/uploads/${req.file.filename}`;;
+//     }
+//     const updatedClinic = await clinicModel.findByIdAndUpdate(id, updateData, {
+//       new: true,
+//     });
+//     if (!updatedClinic) {
+//       return res.status(404).json({ message: "Clinic not found" });
+//     }
+//     return res
+//       .status(200)
+//       .json({ message: "Clinic updated", clinic: updatedClinic });
+//   } catch (error) {
+//     console.error("Error updating clinic:", error);
+//     return res.status(500).json({ message: "Something went wrong", error });
+//   }
+// };
 export const updateClinic = async (req, res) => {
     try {
         const { id } = req.params;
-        const { clinicName, clinicType, specialities, operatingHours, clinicLicenseNumber, aadharNumber, panNumber, address, district, pincode, state, phone, email, staffEmail, staffPassword, staffName, staffId, doctors, } = req.body;
+        const { clinicName, clinicType, specialities, operatingHours, clinicLicenseNumber, aadharNumber, panNumber, address, district, pincode, state, phone, email, staffEmail, staffPassword, staffName, staffId, doctors, about, mission, vision, } = req.body;
         const updateData = {
             clinicName,
             clinicType,
-            specialities: Array.isArray(specialities)
-                ? specialities
-                : typeof specialities === "string"
-                    ? specialities.split(",").map((s) => s.trim())
-                    : [],
             operatingHours,
             clinicLicenseNumber,
-            aadharNumber: Number(aadharNumber),
             panNumber,
             address,
             district,
             state,
-            pincode: Number(pincode),
             phone,
             email,
             staffEmail,
             staffName,
             staffId,
             doctors,
+            about,
+            mission,
+            vision,
         };
+        // Handle arrays safely
+        if (specialities) {
+            updateData.specialities = Array.isArray(specialities)
+                ? specialities
+                : typeof specialities === "string"
+                    ? specialities.split(",").map((s) => s.trim())
+                    : [];
+        }
+        // Handle numbers safely
+        if (aadharNumber !== undefined) {
+            updateData.aadharNumber = Number(aadharNumber);
+        }
+        if (pincode !== undefined) {
+            updateData.pincode = Number(pincode);
+        }
         // 🔒 Hash new password if provided
         if (staffPassword && staffPassword.trim() !== "") {
             const hashedPassword = await bcrypt.hash(staffPassword, 10);
@@ -169,21 +392,22 @@ export const updateClinic = async (req, res) => {
         // Optional file upload handling
         if (req.file) {
             updateData.registrationCertificate = `http://localhost:3000/uploads/${req.file.filename}`;
-            ;
         }
-        const updatedClinic = await clinicModel.findByIdAndUpdate(id, updateData, {
-            new: true,
-        });
+        const updatedClinic = await clinicModel.findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true });
         if (!updatedClinic) {
             return res.status(404).json({ message: "Clinic not found" });
         }
-        return res
-            .status(200)
-            .json({ message: "Clinic updated", clinic: updatedClinic });
+        return res.status(200).json({
+            message: "Clinic updated successfully",
+            clinic: updatedClinic,
+        });
     }
     catch (error) {
         console.error("Error updating clinic:", error);
-        return res.status(500).json({ message: "Something went wrong", error });
+        return res.status(500).json({
+            message: "Something went wrong",
+            error,
+        });
     }
 };
 // ---------------- Delete Clinic ----------------
@@ -435,5 +659,41 @@ export const getClinicDoctorStatus = async (req, res) => {
     catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+export const getClinic = async (req, res) => {
+    try {
+        const { clinicId } = req.query;
+        if (!clinicId) {
+            res.status(404).json({
+                message: "Clinic ID is not found."
+            });
+        }
+        const clinic = await clinicModel.findById(clinicId);
+        res.status(200).json({
+            clinic: clinic,
+            message: "Clinic found sucessfully"
+        });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({
+            message: error,
+        });
+    }
+};
+import notificationModel from "../models/notification.model.js";
+export const getClinicNotifications = async (req, res) => {
+    try {
+        const { clinicId } = req.params;
+        const logs = await notificationModel.find({ clinicId }).sort({ sentAt: -1 }).limit(100);
+        return res.status(200).json({
+            success: true,
+            logs,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching notifications:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 };

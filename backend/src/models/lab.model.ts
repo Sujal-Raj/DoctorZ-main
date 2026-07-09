@@ -86,6 +86,12 @@ export interface LabTestBookingDocument extends Document {
   status: "pending" | "completed" | "cancelled";
   bookingDate: Date; // <-- user chosen date
   bookedAt: Date; // when the booking was created in system
+  bookedBy?: string;
+  reportUrl?: string;
+  paymentStatus?: "paid" | "unpaid" | "pending";
+  paymentDate?: Date;
+  paymentMethod?: "cash" | "upi" | "card" | "netbanking" | "other";
+  transactionId?: string;
 }
 
 const LabTestBookingSchema = new Schema<LabTestBookingDocument>(
@@ -102,6 +108,33 @@ const LabTestBookingSchema = new Schema<LabTestBookingDocument>(
     },
     bookingDate: { type: Date, required: true }, // <-- now required
     bookedAt: { type: Date, default: Date.now }, // creation timestamp
+    bookedBy: {
+      type: String,
+      enum: ["patient", "lab"],
+      default: "patient",
+    },
+    reportUrl: {
+      type: String,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "unpaid", "pending"],
+      default: "unpaid",
+      required: true,
+    },
+    paymentDate: {
+      type: Date,
+      required: false,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "upi", "card", "netbanking", "other"],
+      required: false,
+    },
+    transactionId: {
+      type: String,
+      required: false,
+    }
   },
   { timestamps: true }
 );
@@ -147,6 +180,12 @@ export interface PackageBookingDocument extends Document {
   tests: mongoose.Types.ObjectId[];
   bookingDate: Date;
   status: "pending" | "completed" | "cancelled";
+  bookedBy?: string;
+  reportUrl?: string;
+  paymentStatus?: "paid" | "unpaid" | "pending";
+  paymentDate?: Date;
+  paymentMethod?: "cash" | "upi" | "card" | "netbanking" | "other";
+  transactionId?: string;
 }
 
 const PackageBookingSchema = new Schema<PackageBookingDocument>(
@@ -161,6 +200,33 @@ const PackageBookingSchema = new Schema<PackageBookingDocument>(
       enum: ["pending", "completed", "cancelled"],
       default: "pending",
     },
+    bookedBy: {
+      type: String,
+      enum: ["patient", "lab"],
+      default: "patient",
+    },
+    reportUrl: {
+      type: String,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "unpaid", "pending"],
+      default: "unpaid",
+      required: true,
+    },
+    paymentDate: {
+      type: Date,
+      required: false,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "upi", "card", "netbanking", "other"],
+      required: false,
+    },
+    transactionId: {
+      type: String,
+      required: false,
+    }
   },
   { timestamps: true }
 );

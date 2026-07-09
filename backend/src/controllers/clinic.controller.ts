@@ -171,6 +171,7 @@ export const clinicRegister = async (req: Request, res: Response) => {
       staffName,
       staffPassword,
       staffId,
+      subscriptionPlan,
     } = req.body;
 
     if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
@@ -238,6 +239,7 @@ const hashedReceptionistPassword = await bcrypt.hash(receptionistPassword, 10);
       staffName,
       staffId,
       staffPassword: await bcrypt.hash(staffPassword, 10),
+      subscriptionPlan,
       registrationCertificate: registrationCertPath,
       clinicImage: clinicImagePath,
     });
@@ -333,12 +335,14 @@ export const clinicLogin=async(req:Request,res:Response)=>{
 
     return res.status(200).json({
       message: "Login successful",
+      jwtToken: token,
       clinic: {
         id: clinic._id,
         staffId: clinic.staffId,
         staffName: clinic.staffName,
         staffEmail: clinic.staffEmail,
         clinicName: clinic.clinicName,
+        allowedFeatures: clinic.allowedFeatures || [],
       },
     });
   }catch(error){
@@ -882,3 +886,19 @@ export const getClinic = async(req:Request,res:Response)=>{
     
   }
 }
+
+import notificationModel from "../models/notification.model.js";
+
+export const getClinicNotifications = async (req: Request, res: Response) => {
+  try {
+    const { clinicId } = req.params;
+    const logs = await notificationModel.find({ clinicId }).sort({ sentAt: -1 }).limit(100);
+    return res.status(200).json({
+      success: true,
+      logs,
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

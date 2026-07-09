@@ -4,6 +4,8 @@
 
 import { Router } from "express";
 import labController from "../controllers/lab.controller.js";
+import { verifyLabToken } from "../middlewares/auth.js";
+import { upload } from "../middlewares/multer.js";
 
 const router = Router();
 
@@ -23,6 +25,10 @@ router.delete("/deleteLabTest/:testId", labController.deleteLabTest);
 // 📋 Bookings & Patients
 router.post("/bookTest", labController.addTestBooking);
 router.get("/getLabPatients/:labId", labController.getLabPatients);
+router.post("/labBookTest", verifyLabToken, labController.labBookTest);
+router.post("/labBookPackage", verifyLabToken, labController.labBookPackage);
+router.put("/completeTest/:bookingId", verifyLabToken, upload.single("report"), labController.completeTestBooking);
+router.put("/completePackage/:bookingId", verifyLabToken, upload.single("report"), labController.completePackageBooking);
 
 
 

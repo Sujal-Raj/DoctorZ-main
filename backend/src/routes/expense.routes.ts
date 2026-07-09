@@ -13,8 +13,9 @@ const expenseRouter = express.Router();
 // Add expense
 expenseRouter.post("/add", addExpense);
 
-// Get all expenses of clinic
+// Get all expenses of clinic or lab
 expenseRouter.get("/clinic/:clinicId", getExpenses);
+expenseRouter.get("/lab/:labId", getExpenses);
 
 // Get single expense
 expenseRouter.get("/:id", getSingleExpense);

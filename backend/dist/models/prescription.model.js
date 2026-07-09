@@ -12,7 +12,7 @@ const PrescriptionSchema = new Schema({
     },
     patientAadhar: {
         type: String,
-        required: true
+        // required:true
     },
     bookingId: {
         type: Schema.Types.ObjectId,

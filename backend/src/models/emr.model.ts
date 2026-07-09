@@ -5,6 +5,7 @@ export interface IEMR extends Document {
   doctorId: mongoose.Types.ObjectId;
     fullName: string;
   mobileNumber: string;
+  patientId?: mongoose.Types.ObjectId;
   aadhar?: number;
   allergies?: string[];
   diseases?: string[];
@@ -34,6 +35,11 @@ const emrSchema = new mongoose.Schema<IEMR>(
     mobileNumber: {
       type: String,
       trim: true,
+    },
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: "Patient",
+      required: false,
     },
     aadhar: {
       type: Number,

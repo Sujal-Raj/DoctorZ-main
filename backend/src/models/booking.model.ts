@@ -20,6 +20,11 @@ export interface IBooking extends Document {
   mode: "online" | "offline";
   fees: number;
   status: "pending" | "completed";
+  clinicId?: mongoose.Types.ObjectId;
+  paymentStatus?: "paid" | "unpaid" | "pending";
+  paymentDate?: Date;
+  paymentMethod?: "cash" | "upi" | "card" | "netbanking" | "other";
+  transactionId?: string;
   createdAt: Date;
   updatedAt: Date;
   roomId:string;
@@ -61,7 +66,7 @@ const bookingSchema = new Schema<IBooking>(
 
     status: {
       type: String,
-      enum: ["pending", "completed"],
+      enum: ["pending", "completed", "registered", "waiting", "in-consultation", "cancelled"],
       default: "pending",
       required: true,
     },
@@ -72,6 +77,31 @@ const bookingSchema = new Schema<IBooking>(
     meetingLink:{
       type:String,
       // required:true,
+    },
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: "Clinic",
+      required: false,
+      default: null,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "unpaid", "pending"],
+      default: "unpaid",
+      required: true,
+    },
+    paymentDate: {
+      type: Date,
+      required: false,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "upi", "card", "netbanking", "other"],
+      required: false,
+    },
+    transactionId: {
+      type: String,
+      required: false,
     }
   },
   { timestamps: true }
