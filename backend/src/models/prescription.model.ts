@@ -15,6 +15,8 @@ export interface IPrescription extends Document{
   recommendedTests?:string[];
   pdfUrl?:string;
    notes?:string;
+   name?:string;
+   mobileNumber?:string;
 
 }
 
@@ -31,6 +33,13 @@ const PrescriptionSchema=new Schema<IPrescription>({
     type:Schema.Types.ObjectId,
     ref:"Doctor",
     required:true
+  },
+  name:{
+    type:String,
+  },
+  mobileNumber:{
+    type:Number,
+    required:true,
   },
   patientAadhar:{
     type:String,

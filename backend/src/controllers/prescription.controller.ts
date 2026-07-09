@@ -32,6 +32,8 @@ export const addPrescription = async (req: Request, res: Response) => {
 
     const prescription = await PrescriptionModel.create({
       doctorId,
+      name,
+      mobileNumber,
       bookingId,
       diagnosis,
       symptoms: symptoms || [],
@@ -227,5 +229,46 @@ export const downloadPrescription = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Error downloading image");
+  }
+};
+;
+
+export const getPrescriptionsForUser = async (req: Request, res: Response) => {
+  try {
+    const { patientAadhar, doctorId, name, mobileNumber } = req.query as {
+      patientAadhar?: string;
+      doctorId?: string;
+      name?: string;
+      mobileNumber?: string;
+    };
+
+    const query: any = {};
+
+    if (patientAadhar) query.patientAadhar = patientAadhar;
+    if (doctorId) query.doctorId = doctorId;
+    if (name) query.name = name;
+    if (mobileNumber) query.mobileNumber = mobileNumber;
+
+    if (Object.keys(query).length === 0) {
+      return res.status(400).json({
+        message:
+          "Provide at least one query param: patientAadhar, doctorId, name, or mobileNumber",
+      });
+    }
+
+    const prescriptions = await PrescriptionModel.find(query).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      count: prescriptions.length,
+      prescriptions,
+    });
+  } catch (err) {
+    console.error("getPrescriptionsForUser error:", err);
+    return res.status(500).json({
+      message: "Something went wrong",
+      error: err instanceof Error ? err.message : err,
+    });
   }
 };
