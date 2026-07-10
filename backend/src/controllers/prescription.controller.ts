@@ -256,9 +256,12 @@ export const getPrescriptionsForUser = async (req: Request, res: Response) => {
       });
     }
 
-    const prescriptions = await PrescriptionModel.find(query).sort({
-      createdAt: -1,
-    });
+  const prescriptions = await PrescriptionModel.find(query)
+  .populate({
+    path: "doctorId",
+    select: "fullName specialization ",
+  })
+  .sort({ createdAt: -1 });
 
     return res.status(200).json({
       count: prescriptions.length,
