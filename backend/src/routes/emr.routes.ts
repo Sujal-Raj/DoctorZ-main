@@ -1,4 +1,4 @@
-import { createEMR } from "../controllers/emr.controller.js";
+import { createEMR, getEMRByName } from "../controllers/emr.controller.js";
 // import { getEMRByPatientId } from "../controllers/emr.controller.js";
 // import { getEMRById } from "../controllers/emr.controller.js";
 import { getEMRByAadhar } from "../controllers/emr.controller.js";
@@ -13,4 +13,5 @@ router.post("/createEmr", upload.array("reports"), createEMR);
 // router.get("/:patientId", getEMRByPatientId);
 
 router.get("/:aadhar", getEMRByAadhar);
+router.get("/name/:name", getEMRByName);
 export default router;

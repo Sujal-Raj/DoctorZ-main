@@ -157,3 +157,36 @@ export const getEMRByAadhar = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Error fetching EMR data" });
   }
 };
+
+
+export const getEMRByName = async (req: Request, res: Response) => {
+  try {
+    const { name } = req.params;
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Patient name is required",
+      });
+    }
+
+    const emrRecords = await EMRModel.find({
+      fullName: { $regex: name, $options: "i" }, // case-insensitive search
+    }).sort({ createdAt: -1 });
+
+    if (!emrRecords || emrRecords.length === 0) {
+      return res.status(404).json({
+        message: "No EMR found for this name",
+      });
+    }
+
+    return res.status(200).json({
+      message: "EMR records fetched successfully",
+      emr: emrRecords,
+    });
+  } catch (error) {
+    console.error("Error fetching EMR:", error);
+    return res.status(500).json({
+      message: "Error fetching EMR data",
+    });
+  }
+};
