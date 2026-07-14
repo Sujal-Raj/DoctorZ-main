@@ -19,6 +19,7 @@ export const addExpense = async (
       description,
       receipt,
       addedBy,
+      transactionId,
     } = req.body;
 
     // Validation
@@ -75,6 +76,7 @@ export const addExpense = async (
       description,
       receipt,
       addedBy,
+      transactionId
     });
 
     await newExpense.save();

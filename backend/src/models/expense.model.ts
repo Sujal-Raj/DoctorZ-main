@@ -31,6 +31,7 @@ export interface IExpense extends Document {
   receipt?: string;
 
   addedBy?: string;
+  transactionId?: string;
 }
 
 const expenseSchema = new mongoose.Schema<IExpense>(
@@ -88,6 +89,9 @@ const expenseSchema = new mongoose.Schema<IExpense>(
 
     receipt: {
       type: String,
+    },
+    transactionId:{
+      type:String,
     },
 
     addedBy: {
