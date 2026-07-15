@@ -54,16 +54,16 @@ const expenseSchema = new mongoose.Schema<IExpense>(
 
     category: {
       type: String,
-      enum: [
-        "Salary",
-        "Electricity",
-        "Medicine Purchase",
-        "Equipment",
-        "Maintenance",
-        "Rent",
-        "Internet",
-        "Miscellaneous",
-      ],
+      // enum: [
+      //   "Salary",
+      //   "Electricity",
+      //   "Medicine Purchase",
+      //   "Equipment",
+      //   "Maintenance",
+      //   "Rent",
+      //   "Internet",
+      //   "Miscellaneous",
+      // ],
       required: true,
     },
 
