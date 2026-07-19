@@ -228,12 +228,14 @@ import EMRModel from "../models/emr.model.js";
 // };
 export const bookToken = async (req, res) => {
     try {
-        const { doctorId, fullName, gender, dob, mobileNumber, aadhar, date, paid } = req.body;
+        const { doctorId, fullName, gender, dob, mobileNumber, aadhar, date, paid, } = req.body;
         // ===============================
         // Validation
         // ===============================
         if (!doctorId || !fullName || !gender || !dob || !mobileNumber || !date) {
-            return res.status(400).json({ message: "Missing required fields" });
+            return res.status(400).json({
+                message: "Missing required fields",
+            });
         }
         // ===============================
         // Receptionist clinic check
@@ -242,43 +244,45 @@ export const bookToken = async (req, res) => {
         if (isReceptionist) {
             const clinic = await clinicModel.findById(req.user.clinic);
             if (!clinic) {
-                return res.status(404).json({ message: "Clinic not found" });
+                return res.status(404).json({
+                    message: "Clinic not found",
+                });
             }
             if (!clinic.doctors.includes(doctorId)) {
-                return res
-                    .status(403)
-                    .json({ message: "Doctor does not belong to your clinic" });
+                return res.status(403).json({
+                    message: "Doctor does not belong to your clinic",
+                });
             }
         }
         // ===============================
-        // Find or Register Patient
+        // Find or Create Patient
         // ===============================
-        // Check by mobile + name first (primary dedup key)
         let patient = await patientModel.findOne({
-            mobileNumber,
             fullName,
+            mobileNumber,
         });
         if (!patient) {
-            // If aadhar provided, check if it already exists
-            if (aadhar) {
-                const aadharExists = await patientModel.findOne({
-                    aadhar: String(aadhar),
-                });
-                // If Aadhar exists, use that patient instead of creating a new one
-                if (aadharExists) {
-                    patient = aadharExists;
-                }
-            }
-            // If still no patient, register new walk-in patient
-            if (!patient) {
-                patient = await patientModel.create({
-                    fullName,
-                    gender,
-                    dob,
-                    mobileNumber,
-                    ...(aadhar ? { aadhar: String(aadhar) } : {}),
-                });
-            }
+            patient = await patientModel.create({
+                fullName,
+                gender,
+                dob,
+                mobileNumber,
+                ...(aadhar ? { aadhar: String(aadhar) } : {}),
+            });
+        }
+        // ===============================
+        // Find or Create EMR
+        // ===============================
+        let emr = await EMRModel.findOne({
+            fullName,
+            mobileNumber: String(mobileNumber),
+        });
+        if (!emr) {
+            emr = await EMRModel.create({
+                fullName,
+                mobileNumber: String(mobileNumber),
+                ...(aadhar ? { aadhar: String(aadhar) } : {}),
+            });
         }
         // ===============================
         // Duplicate booking check
@@ -294,17 +298,21 @@ export const bookToken = async (req, res) => {
             });
         }
         // ===============================
-        // Get fees from doctor model
+        // Doctor Check
         // ===============================
         const doctor = await doctorModel.findById(doctorId);
-        console.log(doctor);
         if (!doctor) {
-            return res.status(404).json({ message: "Doctor not found" });
+            return res.status(404).json({
+                message: "Doctor not found",
+            });
         }
         // ===============================
-        // Token Counter (per doctor per date)
+        // Token Counter
         // ===============================
-        const counter = await tokenCounter.findOneAndUpdate({ doctorId, date }, { $inc: { seq: 1 } }, { new: true, upsert: true });
+        const counter = await tokenCounter.findOneAndUpdate({ doctorId, date }, { $inc: { seq: 1 } }, {
+            new: true,
+            upsert: true,
+        });
         // ===============================
         // Create Booking
         // ===============================
@@ -338,12 +346,16 @@ export const bookToken = async (req, res) => {
             tokenNumber: counter.seq,
             booking,
             patient,
-            paid: paid,
+            emr,
+            paid,
         });
     }
     catch (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Internal server error." });
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error.",
+        });
     }
 };
 export const getDoctorOfflineBookings = async (req, res) => {
@@ -354,6 +366,7 @@ export const getDoctorOfflineBookings = async (req, res) => {
         }
         const bookings = await offlineBooking
             .find({ doctorId })
+            .populate("userId")
             .sort({ date: 1, tokenNumber: 1 });
         return res.status(200).json({ bookings });
     }

@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import patientModel from "../models/patient.model.js";
 import clinicModel from "../models/clinic.model.js";
 import offlineBooking from "../models/OfflineBookingModel.js";
+import mongoose from "mongoose";
 export const receptionistLogin = async (req, res) => {
     try {
         const { receptionId, password } = req.body;
@@ -56,6 +57,7 @@ export const receptionistLogin = async (req, res) => {
     }
 };
 export const walkInRegisteration = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const { fullName, gender, dob, mobileNumber, aadhar, abhaId, emergencyContactName, emergencyContactNumber, insuranceProvider, insurancePolicyNumber, familyId, } = req.body;
         // Required validation (minimal fields)
@@ -99,9 +101,11 @@ export const walkInRegisteration = async (req, res) => {
             insurancePolicyNumber: insurancePolicyNumber || undefined,
             familyId: assignedFamilyId || undefined,
         });
+        // console.log("created",createdEmr,createdPatient)
         return res.status(201).json({
             message: "Walk-in patient registered successfully",
-            patient,
+            // createdPatient,
+            // createdEmr
         });
     }
     catch (error) {
@@ -234,26 +238,64 @@ export const updateClinicPatient = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-export const searchPatientByMobile = async (req, res) => {
+// export const searchPatientByMobile = async (req: Request, res: Response) => {
+//   try {
+//     const { mobile } = req.params; // It could be name or mobile
+//     if (!mobile) {
+//       return res.status(400).json({ success: false, message: "Search term is required" });
+//     }
+//     const query: any = {};
+//     if (!isNaN(Number(mobile))) {
+//       // If numeric, search exact mobile
+//       query.mobileNumber = Number(mobile);
+//     } else {
+//       // If string, search full name with regex
+//       query.fullName = { $regex: mobile, $options: "i" };
+//     }
+//     const patients = await patientModel.find(query).limit(5);
+//     return res.status(200).json({ success: true, patients });
+//   } catch (error: any) {
+//     console.error("Search patient error:", error);
+//     return res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// };
+export const searchPatient = async (req, res) => {
     try {
-        const { mobile } = req.params; // It could be name or mobile
-        if (!mobile) {
-            return res.status(400).json({ success: false, message: "Search term is required" });
+        const { search } = req.params;
+        if (!search?.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Search term is required",
+            });
         }
-        const query = {};
-        if (!isNaN(Number(mobile))) {
-            // If numeric, search exact mobile
-            query.mobileNumber = Number(mobile);
-        }
-        else {
-            // If string, search full name with regex
-            query.fullName = { $regex: mobile, $options: "i" };
+        const searchTerm = search.trim();
+        const query = {
+            $or: [
+                {
+                    fullName: {
+                        $regex: searchTerm,
+                        $options: "i",
+                    },
+                },
+            ],
+        };
+        // Also search by mobile if the input contains only digits
+        if (/^\d+$/.test(searchTerm)) {
+            query.$or.push({
+                mobileNumber: Number(searchTerm),
+            });
         }
         const patients = await patientModel.find(query).limit(5);
-        return res.status(200).json({ success: true, patients });
+        return res.status(200).json({
+            success: true,
+            patients,
+        });
     }
     catch (error) {
         console.error("Search patient error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
     }
 };

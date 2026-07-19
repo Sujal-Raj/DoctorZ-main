@@ -3,6 +3,7 @@ import inventoryModel from "../models/inventory.model.js";
 import clinicModel from "../models/clinic.model.js";
 import { LabModel } from "../models/lab.model.js";
 import expenseModel from "../models/expense.model.js";
+import { logAudit } from "../utils/audit.util.js";
 
 export const addInventoryItem = async (
   req: Request,
@@ -117,6 +118,21 @@ export const addInventoryItem = async (
       });
       await autoExpense.save();
     }
+
+    await logAudit({
+      req,
+      hospitalId: newItem.clinicId || undefined,
+      module: "Inventory",
+      action: "Purchase Added",
+      details: `Added ${quantity} ${unit} of ${itemName} to inventory`,
+      recordId: newItem.id,
+      newValue: {
+        "Item Name": newItem.itemName,
+        "Category": newItem.category,
+        "Quantity": `${newItem.quantity} ${newItem.unit}`,
+        "Status": newItem.status
+      },
+    });
 
     return res.status(201).json({
       success: true,
@@ -259,6 +275,25 @@ export const updateInventoryItem = async (
         new: true,
       }
     );
+
+    await logAudit({
+      req,
+      hospitalId: updatedItem?.clinicId || undefined,
+      module: "Inventory",
+      action: "Stock Updated",
+      details: `Inventory item ${existingItem.itemName} was updated. New Total: ${updatedItem?.quantity}`,
+      recordId: updatedItem?.id,
+      previousValue: {
+        "Item Name": existingItem.itemName,
+        "Quantity": `${existingItem.quantity} ${existingItem.unit}`,
+        "Status": existingItem.status
+      },
+      newValue: updatedItem ? {
+        "Item Name": updatedItem.itemName,
+        "Quantity": `${updatedItem.quantity} ${updatedItem.unit}`,
+        "Status": updatedItem.status
+      } : null,
+    });
 
     return res.status(200).json({
       success: true,

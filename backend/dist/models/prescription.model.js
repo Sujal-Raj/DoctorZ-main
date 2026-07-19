@@ -10,6 +10,13 @@ const PrescriptionSchema = new Schema({
         ref: "Doctor",
         required: true
     },
+    name: {
+        type: String,
+    },
+    mobileNumber: {
+        type: Number,
+        required: true,
+    },
     patientAadhar: {
         type: String,
         // required:true

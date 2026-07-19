@@ -14,6 +14,7 @@ import {
 } from "../models/lab.model.js";
 import patientModel from "../models/patient.model.js";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+import { logAudit } from "../utils/audit.util.js";
 
 // ------------------ LAB REGISTER ------------------
 const labRegister = async (req: Request, res: Response) => {
@@ -188,6 +189,21 @@ const addTestBooking = async (req: Request, res: Response) => {
       status: "pending",
       bookingDate: bookingDateObj,
       // bookedAt will default to Date.now via schema
+    });
+
+    await logAudit({
+      req,
+      module: "Lab",
+      action: "Test Ordered",
+      details: `Lab test ${test.name} booked`,
+      recordId: booking.id,
+      newValue: {
+        "Test Name": booking.testName,
+        "Category": booking.category,
+        "Price": `₹${booking.price}`,
+        "Status": booking.status,
+        "Booking Date": booking.bookingDate
+      },
     });
 
     return res
@@ -739,7 +755,7 @@ const completeTestBooking = async (req: Request, res: Response) => {
       );
     }
 
-    booking.status = "completed";
+    booking.status = "Delivered";
     if (reportUrl) {
       booking.reportUrl = reportUrl;
     }
@@ -785,7 +801,7 @@ const completePackageBooking = async (req: Request, res: Response) => {
       );
     }
 
-    booking.status = "completed";
+    booking.status = "Delivered";
     if (reportUrl) {
       booking.reportUrl = reportUrl;
     }

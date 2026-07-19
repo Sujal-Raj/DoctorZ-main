@@ -29,6 +29,8 @@ import ipdRoutes from "./routes/ipd.routes.js";
 import billRoutes from "./routes/bill.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import assetSupplierRoutes from "./routes/assetSupplier.routes.js";
+import referralRoutes from "./routes/referral.routes.js";
+import auditRoutes from "./routes/audit.routes.js";
 // dotenv.config();
 dbConnect();
 // const PORT = 3000;
@@ -38,7 +40,7 @@ dbConnect();
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://doctor-z-inhouse-frontend.vercel.app", "https://doctor-z-main-frontend.vercel.app", "https://doctor-z-fronted.vercel.app"], // your frontend origin in development
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://doctor-z-inhouse-frontend.vercel.app", "https://doctor-z-main-frontend.vercel.app", "https://doctor-z-fronted.vercel.app", "https://doctor-z-patient-frontend.vercel.app"], // your frontend origin in development
     credentials: true
 }));
 app.use(express.json());
@@ -178,6 +180,8 @@ app.use("/api/ipd", ipdRoutes);
 app.use("/api/billing", billRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/asset-supplier", assetSupplierRoutes);
+app.use("/api/referral", referralRoutes);
+app.use("/api/audit", auditRoutes);
 // app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 // app.get(/.*/, (req, res) => {
 //   res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));

@@ -4,6 +4,7 @@ import PrescriptionModel from "../models/prescription.model.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import EMRModel from "../models/emr.model.js";
+import { logAudit } from "../utils/audit.util.js";
 
 export const addPrescription = async (req: Request, res: Response) => {
   try {
@@ -189,6 +190,21 @@ if (!emr) {
 
     emr.prescriptionId.push(prescription._id);
     await emr.save();
+
+    await logAudit({
+      req,
+      module: "Doctor",
+      action: "Prescription Generated",
+      details: `Prescription generated for patient ${name || mobileNumber}`,
+      recordId: prescription._id as unknown as string,
+      newValue: {
+        "Patient Name": name || "Unknown",
+        "Mobile": mobileNumber || "Unknown",
+        "Diagnosis": diagnosis,
+        "Medicines Prescribed": medicines?.length || 0,
+        "Recommended Tests": recommendedTests?.join(", ") || "None"
+      },
+    });
 
     return res.status(201).json({
       message: "Prescription saved with image",

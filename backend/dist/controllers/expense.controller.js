@@ -3,7 +3,7 @@ import clinicModel from "../models/clinic.model.js";
 import { LabModel } from "../models/lab.model.js";
 export const addExpense = async (req, res) => {
     try {
-        const { clinicId, labId, title, category, amount, paymentMethod, expenseDate, description, receipt, addedBy, } = req.body;
+        const { clinicId, labId, title, category, amount, paymentMethod, expenseDate, description, receipt, addedBy, transactionId, } = req.body;
         // Validation
         if (!clinicId && !labId) {
             return res.status(400).json({
@@ -52,6 +52,7 @@ export const addExpense = async (req, res) => {
             description,
             receipt,
             addedBy,
+            transactionId
         });
         await newExpense.save();
         return res.status(201).json({

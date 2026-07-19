@@ -16,16 +16,16 @@ const expenseSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: [
-            "Salary",
-            "Electricity",
-            "Medicine Purchase",
-            "Equipment",
-            "Maintenance",
-            "Rent",
-            "Internet",
-            "Miscellaneous",
-        ],
+        // enum: [
+        //   "Salary",
+        //   "Electricity",
+        //   "Medicine Purchase",
+        //   "Equipment",
+        //   "Maintenance",
+        //   "Rent",
+        //   "Internet",
+        //   "Miscellaneous",
+        // ],
         required: true,
     },
     amount: {
@@ -45,6 +45,9 @@ const expenseSchema = new mongoose.Schema({
         type: String,
     },
     receipt: {
+        type: String,
+    },
+    transactionId: {
         type: String,
     },
     addedBy: {

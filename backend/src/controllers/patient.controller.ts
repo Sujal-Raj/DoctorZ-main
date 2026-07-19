@@ -12,6 +12,7 @@ import { FaV } from "react-icons/fa6";
 import PrescriptionModel from "../models/prescription.model.js";
 import { LabModel, LabTestBookingModel, PackageBookingModel } from "../models/lab.model.js";
 import offlineBooking from "../models/OfflineBookingModel.js";
+import { logAudit } from "../utils/audit.util.js";
 
 const patientRegister = async (req: Request, res: Response) => {
   try {
@@ -118,6 +119,21 @@ const patientRegister = async (req: Request, res: Response) => {
 
       await patient.save();
     }
+
+    await logAudit({
+      req,
+      module: "Patient",
+      action: "Patient Created",
+      details: `Patient ${patient.fullName} registered successfully`,
+      recordId: patient.id,
+      newValue: {
+        "Patient Name": patient.fullName,
+        "Gender": patient.gender,
+        "Mobile": patient.mobileNumber,
+        "City": patient.address?.city,
+        "DOB": patient.dob
+      },
+    });
 
     return res.status(201).json({
       message: "Patient registered successfully",
@@ -228,13 +244,26 @@ const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const deleteUser = patientModel.findByIdAndDelete(id);
+    const deletedUser = await patientModel.findByIdAndDelete(id);
 
-    if (!deleteUser) {
+    if (!deletedUser) {
       return res.status(400).json({
         message: "User Not Found.",
       });
     }
+
+    await logAudit({
+      req,
+      module: "Patient",
+      action: "Patient Deleted",
+      details: `Patient ${deletedUser.fullName} was deleted`,
+      recordId: id,
+      previousValue: {
+        "Patient Name": deletedUser.fullName,
+        "Mobile": deletedUser.mobileNumber,
+        "Email": deletedUser.email
+      },
+    });
 
     return res.status(200).json({
       message: "User Deleted.",
@@ -373,8 +402,30 @@ const updatePatient = async (req: Request, res: Response) => {
       updateData.profilePhoto = `/uploads/${req.file.filename}`;
     }
 
+    const oldPatient = await patientModel.findById(id);
+    if (!oldPatient) return res.status(404).json({ message: "User not found." });
+
+    const previousValue = oldPatient.toObject();
+
     const updated = await patientModel.findByIdAndUpdate(id, updateData, {
       new: true,
+    });
+
+    const getReadablePatient = (p: any) => p ? {
+      "Patient Name": p.fullName,
+      "Gender": p.gender,
+      "Mobile": p.mobileNumber,
+      "Email": p.email
+    } : null;
+
+    await logAudit({
+      req,
+      module: "Patient",
+      action: "Patient Updated",
+      details: `Patient ${updated?.fullName || 'Unknown'} profile updated`,
+      recordId: id,
+      previousValue: getReadablePatient(oldPatient),
+      newValue: getReadablePatient(updated),
     });
 
     if (!updated) return res.status(404).json({ message: "User not found." });

@@ -700,6 +700,9 @@ export const getClinicById = async(req:Request,res:Response)=>{
 
 
 // ---------------- Get All Clinic Patients ----------------
+import offlineBookingModel from "../models/OfflineBookingModel.js";
+import ipdAdmissionModel from "../models/ipdAdmission.model.js";
+
 export const getAllClinicPatients = async (req: Request, res: Response) => {
   try {
     const { clinicId } = req.params;
@@ -719,33 +722,82 @@ export const getAllClinicPatients = async (req: Request, res: Response) => {
 
     const doctorIds = doctors.map((d) => d._id);
 
-    // ✅ Step 2: Fetch all bookings for those doctors
-    const bookings = await bookingModel
-      .find({ doctorId: { $in: doctorIds } })
-      .populate("doctorId", "fullName specialization");
+    // ✅ Step 2: Fetch all online and offline bookings and IPD admissions
+    const [onlineBookings, offlineBookings, ipdAdmissions] = await Promise.all([
+      bookingModel.find({ doctorId: { $in: doctorIds } }).populate("doctorId", "fullName specialization").populate("userId"),
+      offlineBookingModel.find({ doctorId: { $in: doctorIds } }).populate("doctorId", "fullName specialization").populate("userId"),
+      ipdAdmissionModel.find({ clinicId }).populate("doctorId", "fullName specialization").populate("patientId")
+    ]);
 
-    if (bookings.length === 0) {
-      return res.status(404).json({ message: "No patients found for this clinic" });
+    const allBookings = [...onlineBookings, ...offlineBookings, ...ipdAdmissions];
+
+    if (allBookings.length === 0) {
+      return res.status(200).json({ message: "No patients found for this clinic", patients: [] });
     }
 
-    // ✅ Step 3: Build patient list using the `patient` object
-    const patients = bookings.map((b) => {
-      const doctor: any = b.doctorId;
-      const patient: any = b.patient; // 👈 comes from embedded field
+    // ✅ Step 3: Build patient list using the `patient` object and ensure uniqueness
+    const seenPatients = new Set();
+    const patients = [];
 
-      return {
-        patientName: patient?.name,
-        age: patient?.age,
-        gender: patient?.gender,
-        contact: patient?.contact,
-        aadhar: patient?.aadhar,
-        appointedTo: `Dr. ${doctor?.fullName}`,
-        specialization: doctor?.specialization,
-        datetime: b.dateTime,
-        mode: b.mode,
-        fees: b.fees,
-      };
-    });
+    for (const b of allBookings) {
+      const doctor: any = b.doctorId;
+      
+      let patientData: any;
+      let userId: any;
+      let dateField: any;
+      let modeField: any;
+      let feesField: any;
+
+      if ((b as any).patientId) {
+        // This is an IPD Admission
+        patientData = (b as any).patientId; // populated Patient object
+        userId = patientData._id;
+        dateField = (b as any).admissionDate;
+        modeField = "IPD Admission";
+        feesField = (b as any).initialDeposit;
+      } else {
+        // This is a Booking / Offline Booking
+        if ((b as any).userId && typeof (b as any).userId === 'object') {
+          // If userId is populated, it contains the real patient document
+          patientData = (b as any).userId;
+          userId = patientData._id;
+        } else {
+          // Fallback to embedded patient for unregistered walk-ins
+          patientData = (b as any).patient;
+          userId = (b as any).userId;
+        }
+        dateField = (b as any).dateTime || (b as any).date;
+        modeField = (b as any).mode || "offline";
+        feesField = (b as any).fees;
+      }
+
+      // Map field names since Patient model has fullName and mobileNumber
+      const patientName = patientData?.fullName || patientData?.name;
+      const contact = patientData?.mobileNumber || patientData?.contact;
+      const gender = patientData?.gender;
+      const age = patientData?.age || patientData?.dob ? new Date().getFullYear() - new Date(patientData.dob).getFullYear() : null;
+
+      // Use a combination of userId or contact as unique identifier so we don't duplicate patients
+      const identifier = userId ? userId.toString() : contact;
+      
+      if (!seenPatients.has(identifier)) {
+        seenPatients.add(identifier);
+        patients.push({
+          patientId: userId || null,
+          patientName: patientName,
+          age: age,
+          gender: gender,
+          contact: contact,
+          aadhar: patientData?.aadhar,
+          appointedTo: doctor ? `Dr. ${doctor?.fullName}` : "Hospital Staff",
+          specialization: doctor?.specialization || "General",
+          datetime: dateField,
+          mode: modeField,
+          fees: feesField,
+          status: (b as any).status
+        });
+      }
+    }
 
     return res.status(200).json({
       message: "All clinic patients fetched successfully",

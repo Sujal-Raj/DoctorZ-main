@@ -5,6 +5,14 @@ const emrSchema = new mongoose.Schema({
         ref: "Doctor",
         default: null,
     },
+    fullName: {
+        type: String,
+        trim: true,
+    },
+    mobileNumber: {
+        type: String,
+        trim: true,
+    },
     patientId: {
         type: Schema.Types.ObjectId,
         ref: "Patient",

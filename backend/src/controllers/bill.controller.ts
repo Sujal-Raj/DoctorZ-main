@@ -3,6 +3,7 @@ import billModel from "../models/bill.model.js";
 import inventoryModel from "../models/inventory.model.js";
 import patientModel from "../models/patient.model.js";
 import { sendSimulatedAlert } from "../utils/smsHelper.js";
+import { logAudit } from "../utils/audit.util.js";
 
 export const createBill = async (req: Request, res: Response) => {
   try {
@@ -105,6 +106,22 @@ export const createBill = async (req: Request, res: Response) => {
       recipientPhone: String(patient.mobileNumber),
       message: `Dear ${patient.fullName}, an invoice ${newBill.invoiceNumber} of ₹${newBill.grandTotal.toLocaleString()} has been generated. Due amount: ₹${newBill.dueAmount.toLocaleString()}. Thank you!`,
     }).catch(err => console.error("Simulated alert error:", err));
+
+    await logAudit({
+      req,
+      hospitalId: newBill.clinicId,
+      module: "Billing",
+      action: "Bill Generated",
+      details: `Invoice ${newBill.invoiceNumber} generated for patient ${patient.fullName}`,
+      recordId: newBill.id,
+      newValue: {
+        "Invoice Number": newBill.invoiceNumber,
+        "Patient Name": patient.fullName,
+        "Grand Total": `₹${newBill.grandTotal}`,
+        "Due Amount": `₹${newBill.dueAmount}`,
+        "Status": newBill.status
+      },
+    });
 
     return res.status(201).json({
       success: true,

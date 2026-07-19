@@ -45,4 +45,14 @@ router.get("/package-bookings/:patientId", labController.getPatientPackageBookin
 router.put("/updatePackage/:packageId", labController.updateLabPackage);
 router.delete("/deletePackage/:packageId", labController.deleteLabPackage);
 
+import { getLabOrders, updateLabOrderStatus, verifyPublicReport } from "../controllers/labOrder.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+
+// 🚀 Advanced Lab Orders
+router.get("/orders", authMiddleware, getLabOrders);
+router.put("/orders/:id/status", authMiddleware, updateLabOrderStatus);
+
+// 🔍 Public QR Verification
+router.get("/public/verify/:id", verifyPublicReport);
+
 export default router;

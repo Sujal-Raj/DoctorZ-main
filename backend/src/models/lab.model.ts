@@ -80,64 +80,72 @@ export const TestModel = mongoose.model<TestDocument>("LabTest", TestSchema);
 export interface LabTestBookingDocument extends Document {
   labId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  referredByDoctorId?: mongoose.Types.ObjectId;
+  referredByHospitalId?: mongoose.Types.ObjectId;
   testName: string;
   category: string;
   price: number;
-  status: "pending" | "completed" | "cancelled";
+  status: "Created" | "Accepted" | "Sample Collection Pending" | "Sample Collected" | "Processing" | "Report Ready" | "Approved" | "Delivered" | "Rejected" | "Cancelled";
   bookingDate: Date; // <-- user chosen date
   bookedAt: Date; // when the booking was created in system
   bookedBy?: string;
   reportUrl?: string;
+  testResults?: any; // JSON for individual test markers/ranges
   paymentStatus?: "paid" | "unpaid" | "pending";
   paymentDate?: Date;
   paymentMethod?: "cash" | "upi" | "card" | "netbanking" | "other";
   transactionId?: string;
+  expectedDelivery?: Date; // SLA tracking
+  actualDelivery?: Date; // TAT tracking
 }
 
 const LabTestBookingSchema = new Schema<LabTestBookingDocument>(
   {
     labId: { type: Schema.Types.ObjectId, ref: "Lab", required: true },
     userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    referredByDoctorId: { type: Schema.Types.ObjectId, ref: "Doctor" },
+    referredByHospitalId: { type: Schema.Types.ObjectId, ref: "Clinic" },
     testName: { type: String, required: true },
     category: { type: String },
     price: { type: Number },
     status: {
       type: String,
-      enum: ["pending", "completed", "cancelled"],
-      default: "pending",
+      enum: ["Created", "Accepted", "Sample Collection Pending", "Sample Collected", "Processing", "Report Ready", "Approved", "Delivered", "Rejected", "Cancelled"],
+      default: "Created",
     },
     bookingDate: { type: Date, required: true }, // <-- now required
     bookedAt: { type: Date, default: Date.now }, // creation timestamp
     bookedBy: {
       type: String,
-      enum: ["patient", "lab"],
+      enum: ["patient", "lab", "hospital", "doctor"],
       default: "patient",
     },
-    reportUrl: {
-      type: String,
-    },
+    reportUrl: { type: String },
+    testResults: { type: Schema.Types.Mixed }, // Store results mapped by parameter
     paymentStatus: {
       type: String,
       enum: ["paid", "unpaid", "pending"],
       default: "unpaid",
       required: true,
     },
-    paymentDate: {
-      type: Date,
-      required: false,
-    },
+    paymentDate: { type: Date, required: false },
     paymentMethod: {
       type: String,
       enum: ["cash", "upi", "card", "netbanking", "other"],
       required: false,
     },
-    transactionId: {
-      type: String,
-      required: false,
-    }
+    transactionId: { type: String, required: false },
+    expectedDelivery: { type: Date },
+    actualDelivery: { type: Date }
   },
   { timestamps: true }
 );
+
+LabTestBookingSchema.index({ labId: 1, status: 1 });
+LabTestBookingSchema.index({ userId: 1 });
+LabTestBookingSchema.index({ referredByDoctorId: 1 });
+LabTestBookingSchema.index({ referredByHospitalId: 1 });
+
 
 
 export const LabTestBookingModel = mongoose.model<LabTestBookingDocument>(
@@ -179,7 +187,7 @@ export interface PackageBookingDocument extends Document {
   userId: mongoose.Types.ObjectId;
   tests: mongoose.Types.ObjectId[];
   bookingDate: Date;
-  status: "pending" | "completed" | "cancelled";
+  status: "Created" | "Accepted" | "Sample Collection Pending" | "Sample Collected" | "Processing" | "Report Ready" | "Approved" | "Delivered" | "Rejected" | "Cancelled";
   bookedBy?: string;
   reportUrl?: string;
   paymentStatus?: "paid" | "unpaid" | "pending";
@@ -197,8 +205,8 @@ const PackageBookingSchema = new Schema<PackageBookingDocument>(
     bookingDate: { type: Date, default: Date.now },
     status: {
       type: String,
-      enum: ["pending", "completed", "cancelled"],
-      default: "pending",
+      enum: ["Created", "Accepted", "Sample Collection Pending", "Sample Collected", "Processing", "Report Ready", "Approved", "Delivered", "Rejected", "Cancelled"],
+      default: "Created",
     },
     bookedBy: {
       type: String,

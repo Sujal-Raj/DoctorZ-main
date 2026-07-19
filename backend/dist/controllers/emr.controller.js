@@ -121,3 +121,95 @@ export const getEMRByAadhar = async (req, res) => {
         return res.status(500).json({ message: "Error fetching EMR data" });
     }
 };
+export const getEMRByName = async (req, res) => {
+    try {
+        const { name } = req.params;
+        if (!name) {
+            return res.status(400).json({
+                message: "Patient name is required",
+            });
+        }
+        const emrRecords = await EMRModel.find({
+            fullName: { $regex: name, $options: "i" }, // case-insensitive search
+        }).sort({ createdAt: -1 });
+        if (!emrRecords || emrRecords.length === 0) {
+            return res.status(404).json({
+                message: "No EMR found for this name",
+            });
+        }
+        return res.status(200).json({
+            message: "EMR records fetched successfully",
+            emr: emrRecords,
+        });
+    }
+    catch (error) {
+        console.error("Error fetching EMR:", error);
+        return res.status(500).json({
+            message: "Error fetching EMR data",
+        });
+    }
+};
+export const updateEMR = async (req, res) => {
+    try {
+        const { emrId } = req.params;
+        if (!emrId) {
+            return res.status(400).json({ message: "EMR ID is required" });
+        }
+        const emr = await EMRModel.findById(emrId);
+        if (!emr) {
+            return res.status(404).json({ message: "EMR not found" });
+        }
+        const body = req.body;
+        const safeParse = (value) => {
+            try {
+                if (!value)
+                    return [];
+                if (Array.isArray(value))
+                    return value;
+                return JSON.parse(value);
+            }
+            catch {
+                if (typeof value === "string") {
+                    return value
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean);
+                }
+                return [];
+            }
+        };
+        if (body.patientId)
+            emr.patientId = body.patientId;
+        if (body.doctorId)
+            emr.doctorId = body.doctorId;
+        if (body.aadhar !== undefined && body.aadhar !== "") {
+            emr.aadhar = Number(body.aadhar);
+        }
+        const allergies = safeParse(body.allergies);
+        if (allergies.length > 0)
+            emr.allergies = allergies;
+        const diseases = safeParse(body.diseases);
+        if (diseases.length > 0)
+            emr.diseases = diseases;
+        const pastSurgeries = safeParse(body.pastSurgeries);
+        if (pastSurgeries.length > 0)
+            emr.pastSurgeries = pastSurgeries;
+        const currentMedications = safeParse(body.currentMedications);
+        if (currentMedications.length > 0)
+            emr.currentMedications = currentMedications;
+        const files = req.files;
+        if (files && files.length > 0) {
+            const newReportUrls = await Promise.all(files.map((file) => uploadToCloudinary(file.buffer, "emr/reports", file.mimetype === "application/pdf" ? "raw" : "image")));
+            emr.reports = [...(emr.reports || []), ...newReportUrls];
+        }
+        await emr.save();
+        return res.status(200).json({
+            message: "EMR updated successfully",
+            emr,
+        });
+    }
+    catch (error) {
+        console.log("Update EMR Error:", error);
+        return res.status(500).json({ message: "Error updating EMR" });
+    }
+};

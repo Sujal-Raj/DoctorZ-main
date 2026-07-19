@@ -3,19 +3,22 @@ import PrescriptionModel from "../models/prescription.model.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import EMRModel from "../models/emr.model.js";
+import { logAudit } from "../utils/audit.util.js";
 export const addPrescription = async (req, res) => {
     try {
         console.log(req.body);
         const { bookingId } = req.params;
-        const { patientAadhar, doctorId, diagnosis, symptoms, medicines, recommendedTests, notes, name, gender, } = req.body;
+        const { patientAadhar, doctorId, diagnosis, symptoms, medicines, recommendedTests, notes, name, gender, mobileNumber } = req.body;
+        console.log(name, mobileNumber);
         if (!doctorId || !diagnosis || !medicines) {
             return res.status(400).json({
-                message: "doctorId, patientAadhar, diagnosis & medicines are required",
+                message: "doctorId, diagnosis & medicines are required",
             });
         }
         const prescription = await PrescriptionModel.create({
             doctorId,
-            // patientAadhar,
+            name,
+            mobileNumber,
             bookingId,
             diagnosis,
             symptoms: symptoms || [],
@@ -23,9 +26,6 @@ export const addPrescription = async (req, res) => {
             recommendedTests: recommendedTests || [],
             notes: notes || "",
         });
-        // -------------------------
-        // STEP 1: Create HTML
-        // -------------------------
         const htmlContent = `
       <html>
       <head>
@@ -39,15 +39,12 @@ export const addPrescription = async (req, res) => {
       </head>
       <body>
         <h1>Prescription</h1>
-        
+
         <div class="section">
           <h3>Patient Details</h3>
-          <p><strong>Name:</strong> ${name}</p>
-
-          <p><strong>Gender:</strong> ${gender}</p>
-           
-          <p><strong>Aadhar:</strong> ${patientAadhar}</p>
-        
+          <p><strong>Name:</strong> ${name || "-"}</p>
+          <p><strong>Gender:</strong> ${gender || "-"}</p>
+          <p><strong>Aadhar:</strong> ${patientAadhar || "-"}</p>
         </div>
 
         <div class="section">
@@ -58,7 +55,7 @@ export const addPrescription = async (req, res) => {
         <div class="section">
           <h3>Symptoms</h3>
           <ul>
-            ${symptoms?.map((s) => `<li>${s}</li>`).join("")}
+            ${(symptoms || []).map((s) => `<li>${s}</li>`).join("")}
           </ul>
         </div>
 
@@ -70,11 +67,11 @@ export const addPrescription = async (req, res) => {
               <th>Dosage</th>
               <th>Quantity</th>
             </tr>
-            ${medicines
-            ?.map((m) => `
+            ${(medicines || [])
+            .map((m) => `
               <tr>
-                <td>${m.name}</td>
-                <td>${m.dosage}</td>
+                <td>${m.name || "-"}</td>
+                <td>${m.dosage || "-"}</td>
                 <td>${m.quantity || "-"}</td>
               </tr>
             `)
@@ -85,9 +82,7 @@ export const addPrescription = async (req, res) => {
         <div class="section">
           <h3>Recommended Tests</h3>
           <ul>
-            ${(recommendedTests || [])
-            .map((t) => `<li>${t}</li>`)
-            .join("")}
+            ${(recommendedTests || []).map((t) => `<li>${t}</li>`).join("")}
           </ul>
         </div>
 
@@ -98,18 +93,19 @@ export const addPrescription = async (req, res) => {
       </body>
       </html>
     `;
-        // -------------------------
-        // STEP 2: Generate PDF (Puppeteer)
-        // -------------------------
         const browser = await puppeteer.launch({
             headless: true,
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
         });
         const page = await browser.newPage();
-        await page.setContent(htmlContent);
         await page.setViewport({ width: 794, height: 1123 });
+        await page.setContent(htmlContent, {
+            waitUntil: "domcontentloaded",
+            timeout: 0,
+        });
         const imageBuffer = await page.screenshot({ fullPage: true });
+        // const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
         await browser.close();
-        // STEP 3: Upload to Cloudinary
         const cloudResult = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream({
                 resource_type: "image",
@@ -127,30 +123,54 @@ export const addPrescription = async (req, res) => {
             });
             uploadStream.end(imageBuffer);
         });
-        // Save URL
         prescription.pdfUrl = cloudResult.secure_url;
         console.log("Cloudinary Response:", cloudResult);
         await prescription.save();
+        // let emr = await EMRModel.findOne({
+        //   doctorId,
+        //   aadhar: patientAadhar,
+        // });
+        // if (!emr) {
+        //   emr = await EMRModel.create({
+        //     doctorId,
+        //     aadhar: patientAadhar,
+        //     prescriptionId: [],
+        //   });
+        // }
         let emr = await EMRModel.findOne({
             doctorId,
-            aadhar: patientAadhar,
+            name,
+            mobileNumber,
         });
         if (!emr) {
-            // New EMR file
             emr = await EMRModel.create({
                 doctorId,
-                aadhar: patientAadhar,
+                name,
+                mobileNumber,
                 prescriptionId: [],
             });
         }
-        // Push the prescription _id into EMR
         if (!emr.prescriptionId) {
             emr.prescriptionId = [];
         }
         emr.prescriptionId.push(prescription._id);
         await emr.save();
+        await logAudit({
+            req,
+            module: "Doctor",
+            action: "Prescription Generated",
+            details: `Prescription generated for patient ${name || mobileNumber}`,
+            recordId: prescription._id,
+            newValue: {
+                "Patient Name": name || "Unknown",
+                "Mobile": mobileNumber || "Unknown",
+                "Diagnosis": diagnosis,
+                "Medicines Prescribed": medicines?.length || 0,
+                "Recommended Tests": recommendedTests?.join(", ") || "None"
+            },
+        });
         return res.status(201).json({
-            message: "Prescription saved with PDF",
+            message: "Prescription saved with image",
             data: prescription,
             emr,
         });
@@ -170,13 +190,10 @@ export const downloadPrescription = async (req, res) => {
         const fileUrl = prescription?.pdfUrl;
         if (!fileUrl)
             return res.status(404).send("Image not found");
-        // extract extension (png / jpg / jpeg)
         const ext = fileUrl.split(".").pop()?.toLowerCase() || "png";
-        // download from cloudinary
         const response = await axios.get(fileUrl, {
             responseType: "arraybuffer",
         });
-        //  force download
         res.setHeader("Content-Disposition", `attachment; filename="prescription_${id}.${ext}"`);
         res.setHeader("Content-Type", "application/octet-stream");
         return res.send(response.data);
@@ -184,5 +201,42 @@ export const downloadPrescription = async (req, res) => {
     catch (err) {
         console.error(err);
         res.status(500).send("Error downloading image");
+    }
+};
+;
+export const getPrescriptionsForUser = async (req, res) => {
+    try {
+        const { patientAadhar, doctorId, name, mobileNumber } = req.query;
+        const query = {};
+        if (patientAadhar)
+            query.patientAadhar = patientAadhar;
+        if (doctorId)
+            query.doctorId = doctorId;
+        if (name)
+            query.name = name;
+        if (mobileNumber)
+            query.mobileNumber = mobileNumber;
+        if (Object.keys(query).length === 0) {
+            return res.status(400).json({
+                message: "Provide at least one query param: patientAadhar, doctorId, name, or mobileNumber",
+            });
+        }
+        const prescriptions = await PrescriptionModel.find(query)
+            .populate({
+            path: "doctorId",
+            select: "fullName specialization ",
+        })
+            .sort({ createdAt: -1 });
+        return res.status(200).json({
+            count: prescriptions.length,
+            prescriptions,
+        });
+    }
+    catch (err) {
+        console.error("getPrescriptionsForUser error:", err);
+        return res.status(500).json({
+            message: "Something went wrong",
+            error: err instanceof Error ? err.message : err,
+        });
     }
 };

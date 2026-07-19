@@ -35,44 +35,45 @@ export const TestModel = mongoose.model("LabTest", TestSchema);
 const LabTestBookingSchema = new Schema({
     labId: { type: Schema.Types.ObjectId, ref: "Lab", required: true },
     userId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    referredByDoctorId: { type: Schema.Types.ObjectId, ref: "Doctor" },
+    referredByHospitalId: { type: Schema.Types.ObjectId, ref: "Clinic" },
     testName: { type: String, required: true },
     category: { type: String },
     price: { type: Number },
     status: {
         type: String,
-        enum: ["pending", "completed", "cancelled"],
-        default: "pending",
+        enum: ["Created", "Accepted", "Sample Collection Pending", "Sample Collected", "Processing", "Report Ready", "Approved", "Delivered", "Rejected", "Cancelled"],
+        default: "Created",
     },
     bookingDate: { type: Date, required: true }, // <-- now required
     bookedAt: { type: Date, default: Date.now }, // creation timestamp
     bookedBy: {
         type: String,
-        enum: ["patient", "lab"],
+        enum: ["patient", "lab", "hospital", "doctor"],
         default: "patient",
     },
-    reportUrl: {
-        type: String,
-    },
+    reportUrl: { type: String },
+    testResults: { type: Schema.Types.Mixed }, // Store results mapped by parameter
     paymentStatus: {
         type: String,
         enum: ["paid", "unpaid", "pending"],
         default: "unpaid",
         required: true,
     },
-    paymentDate: {
-        type: Date,
-        required: false,
-    },
+    paymentDate: { type: Date, required: false },
     paymentMethod: {
         type: String,
         enum: ["cash", "upi", "card", "netbanking", "other"],
         required: false,
     },
-    transactionId: {
-        type: String,
-        required: false,
-    }
+    transactionId: { type: String, required: false },
+    expectedDelivery: { type: Date },
+    actualDelivery: { type: Date }
 }, { timestamps: true });
+LabTestBookingSchema.index({ labId: 1, status: 1 });
+LabTestBookingSchema.index({ userId: 1 });
+LabTestBookingSchema.index({ referredByDoctorId: 1 });
+LabTestBookingSchema.index({ referredByHospitalId: 1 });
 export const LabTestBookingModel = mongoose.model("LabTestBooking", LabTestBookingSchema);
 const LabPackageSchema = new Schema({
     labId: { type: Schema.Types.ObjectId, ref: "Lab", required: true },
@@ -91,8 +92,8 @@ const PackageBookingSchema = new Schema({
     bookingDate: { type: Date, default: Date.now },
     status: {
         type: String,
-        enum: ["pending", "completed", "cancelled"],
-        default: "pending",
+        enum: ["Created", "Accepted", "Sample Collection Pending", "Sample Collected", "Processing", "Report Ready", "Approved", "Delivered", "Rejected", "Cancelled"],
+        default: "Created",
     },
     bookedBy: {
         type: String,

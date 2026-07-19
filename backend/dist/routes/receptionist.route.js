@@ -1,11 +1,11 @@
 import express from "express";
-import { getAllClinicPatients, getClinicDoctorsForReception, getProfile, receptionistLogin, updateClinicPatient, walkInRegisteration, searchPatientByMobile } from "../controllers/receptionist.controller.js";
+import { getAllClinicPatients, getClinicDoctorsForReception, getProfile, receptionistLogin, updateClinicPatient, walkInRegisteration, searchPatient } from "../controllers/receptionist.controller.js";
 import { receptionistVerifyToken, anyStaffVerifyToken } from "../middlewares/auth.js";
 import { bookToken } from "../controllers/offlineBooking.controller.js";
 const router = express.Router();
 router.post("/login", receptionistLogin);
 router.post("/walkinregistration", walkInRegisteration);
-router.get("/search-patient/:mobile", anyStaffVerifyToken, searchPatientByMobile);
+router.get("/search-patient/:search", anyStaffVerifyToken, searchPatient);
 router.get("/getClinicDoctorsForReceptionist", receptionistVerifyToken, getClinicDoctorsForReception);
 router.post("/book-token", receptionistVerifyToken, // OR patientVerifyToken
 bookToken);
