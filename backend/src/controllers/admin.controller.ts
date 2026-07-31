@@ -153,10 +153,19 @@ export const approveLab = async (
 
     const generatedId = generateLabId();
 
-    // ✅ Update lab to approved and assign labId
+    // Get Enterprise plan
+    const enterprisePlan = await subscriptionPlanModel.findOne({ name: { $regex: /Enterprise/i } });
+    const assignedPlanId = enterprisePlan ? enterprisePlan._id : undefined;
+
+    // ✅ Update lab to approved and assign labId & subscriptionPlan
     const lab = await LabModel.findByIdAndUpdate(
       id,
-      { status: "approved", labId: generatedId },
+      { 
+        status: "approved", 
+        labId: generatedId,
+        subscriptionPlan: assignedPlanId,
+        subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year expiration
+      },
       { new: true }
     );
 

@@ -20,6 +20,10 @@ export interface IDoctor extends Document {
   State: string;
   City: string;
   Aadhar: number;
+  District?: string;
+  Pincode?: number;
+  hprId?: string;
+  achievements?: { title: string; certificate?: string }[];
   signature: string;
   photo: string;
   clinic: Types.ObjectId[];
@@ -112,6 +116,27 @@ const doctorSchema = new mongoose.Schema<IDoctor>({
     type: Number,
     required: true,
   },
+  District: {
+    type: String,
+    required: false,
+    default: null,
+  },
+  Pincode: {
+    type: Number,
+    required: false,
+    default: null,
+  },
+  hprId: {
+    type: String,
+    required: false,
+    default: null,
+  },
+  achievements: [
+    {
+      title: { type: String, required: true },
+      certificate: { type: String },
+    }
+  ],
   signature: {
     type: String,
     // required:true,

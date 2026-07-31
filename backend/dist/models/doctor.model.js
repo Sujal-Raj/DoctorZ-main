@@ -63,6 +63,27 @@ const doctorSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    District: {
+        type: String,
+        required: false,
+        default: null,
+    },
+    Pincode: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    hprId: {
+        type: String,
+        required: false,
+        default: null,
+    },
+    achievements: [
+        {
+            title: { type: String, required: true },
+            certificate: { type: String },
+        }
+    ],
     signature: {
         type: String,
         // required:true,

@@ -10,6 +10,7 @@ export interface IClinic extends Document {
   state: string;
   district: string;
   pincode: number;
+  city: string;
 
   
   phone: string;
@@ -23,12 +24,14 @@ export interface IClinic extends Document {
 
   aadharNumber: number;
   panNumber: string;
+  hprId?: string;
 
   staffName: string;
   staffEmail: string;
   staffPassword: string;
   staffId:string;
   status:string;
+
 
   // Details of the clinic 
   about:string,
@@ -64,6 +67,7 @@ const clinicSchema = new mongoose.Schema<IClinic>({
   state: { type: String, required: true },
   district: { type: String, required: true },
   pincode: { type: Number, required: true },
+  city: { type: String, required: true },
 
   // flat contact fields
   phone: { type: String, required: true },
@@ -80,6 +84,7 @@ const clinicSchema = new mongoose.Schema<IClinic>({
   clinicImage: { type: String },
 
   panNumber: { type: String, required: true },
+  hprId: { type: String, required: false, default: null },
   operatingHours: { type: String, required: true },
 
   staffName: {

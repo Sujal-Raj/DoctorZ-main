@@ -140,6 +140,42 @@ const doctorRegister = async (req: Request, res: Response) => {
     // ---------- HASH PASSWORD ----------
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
+    // ---------- PROCESS ACHIEVEMENTS ----------
+    let parsedTitles: string[] = [];
+    if (req.body.achievementTitles) {
+      try {
+        parsedTitles = JSON.parse(req.body.achievementTitles);
+      } catch {
+        parsedTitles = Array.isArray(req.body.achievementTitles)
+          ? req.body.achievementTitles
+          : [req.body.achievementTitles];
+      }
+    }
+
+    const achievementFiles = files?.achievementFiles || [];
+    const achievements = [];
+    if (Array.isArray(parsedTitles)) {
+      for (let i = 0; i < parsedTitles.length; i++) {
+        let certUrl = "";
+        const file = achievementFiles[i];
+        if (file) {
+          try {
+            certUrl = await uploadToCloudinary(
+              file.buffer,
+              "doctors/achievements",
+              file.mimetype === "application/pdf" ? "raw" : "image"
+            );
+          } catch (uploadError) {
+            console.error("Cloudinary upload error for achievement:", uploadError);
+          }
+        }
+        achievements.push({
+          title: parsedTitles[i],
+          certificate: certUrl,
+        });
+      }
+    }
+
     // ---------- CREATE DOCTOR ----------
     const doctor = new doctorModel({
       fullName: req.body.fullName,
@@ -154,6 +190,10 @@ const doctorRegister = async (req: Request, res: Response) => {
       consultationFee: Number(req.body.fees),
       language: req.body.languages,
       Aadhar: Number(req.body.aadhar),
+      District: req.body.district || null,
+      Pincode: req.body.pincode ? Number(req.body.pincode) : null,
+      hprId: req.body.hprId || null,
+      achievements: achievements,
       Address: req.body.address,
       State: req.body.state,
       City: req.body.city,

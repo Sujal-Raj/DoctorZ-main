@@ -7,6 +7,7 @@ router.post('/register', upload.fields([
     { name: "degreeCert", maxCount: 1 },
     { name: "photo", maxCount: 1 },
     { name: "signature", maxCount: 1 },
+    { name: "achievementFiles", maxCount: 10 },
 ]), doctorController.doctorRegister);
 router.get('/search', doctorController.searchDoctors);
 router.get('/allDoctors/:patientId', doctorController.getAllDoctors);

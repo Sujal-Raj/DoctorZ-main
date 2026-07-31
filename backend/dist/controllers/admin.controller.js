@@ -102,8 +102,16 @@ export const approveLab = async (req, res) => {
     try {
         const { id } = req.params;
         const generatedId = generateLabId();
-        // ✅ Update lab to approved and assign labId
-        const lab = await LabModel.findByIdAndUpdate(id, { status: "approved", labId: generatedId }, { new: true });
+        // Get Enterprise plan
+        const enterprisePlan = await subscriptionPlanModel.findOne({ name: { $regex: /Enterprise/i } });
+        const assignedPlanId = enterprisePlan ? enterprisePlan._id : undefined;
+        // ✅ Update lab to approved and assign labId & subscriptionPlan
+        const lab = await LabModel.findByIdAndUpdate(id, {
+            status: "approved",
+            labId: generatedId,
+            subscriptionPlan: assignedPlanId,
+            subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year expiration
+        }, { new: true });
         if (!lab) {
             return res.status(404).json({ message: "Lab not found" });
         }

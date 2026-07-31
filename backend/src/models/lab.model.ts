@@ -20,6 +20,8 @@ export interface LabDocument extends Document {
   certificateNumber: string;
   status: "pending" | "approved" | "rejected";
   createdAt: Date;
+  subscriptionPlan?: mongoose.Types.ObjectId;
+  subscriptionExpiresAt?: Date;
 }
 
 const LabSchema = new Schema<LabDocument>(
@@ -43,6 +45,8 @@ const LabSchema = new Schema<LabDocument>(
       default: "pending",
     },
     createdAt: { type: Date, default: Date.now },
+    subscriptionPlan: { type: mongoose.Schema.Types.ObjectId, ref: "SubscriptionPlan" },
+    subscriptionExpiresAt: { type: Date },
   },
   { timestamps: true }
 );

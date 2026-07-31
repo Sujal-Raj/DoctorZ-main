@@ -20,6 +20,8 @@ const LabSchema = new Schema({
         default: "pending",
     },
     createdAt: { type: Date, default: Date.now },
+    subscriptionPlan: { type: mongoose.Schema.Types.ObjectId, ref: "SubscriptionPlan" },
+    subscriptionExpiresAt: { type: Date },
 }, { timestamps: true });
 export const LabModel = mongoose.model("Lab", LabSchema);
 const TestSchema = new Schema({

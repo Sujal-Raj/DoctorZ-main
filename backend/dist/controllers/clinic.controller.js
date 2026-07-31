@@ -125,7 +125,7 @@ export const clinicRegister = async (req, res) => {
         console.log("🟡 Incoming registration request...");
         console.log("➡️ Body:", req.body);
         console.log("➡️ Files:", req.files);
-        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, staffEmail, staffName, staffPassword, staffId, subscriptionPlan, } = req.body;
+        const { clinicName, clinicType, specialities, operatingHours, licenseNo, ownerAadhar, ownerPan, address, state, district, pincode, contact, email, city, hprId, staffEmail, staffName, staffPassword, staffId, subscriptionPlan, } = req.body;
         if (!clinicName || !clinicType || !specialities || !licenseNo || !ownerAadhar) {
             return res.status(400).json({
                 message: "All required fields must be filled.",
@@ -168,10 +168,12 @@ export const clinicRegister = async (req, res) => {
             clinicLicenseNumber: licenseNo,
             aadharNumber: Number(ownerAadhar),
             panNumber: ownerPan,
+            hprId: hprId || null,
             address,
             state,
             district,
             pincode: Number(pincode),
+            city,
             phone: contact,
             email,
             staffEmail,

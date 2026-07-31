@@ -15,6 +15,7 @@ const clinicSchema = new mongoose.Schema({
     state: { type: String, required: true },
     district: { type: String, required: true },
     pincode: { type: Number, required: true },
+    city: { type: String, required: true },
     // flat contact fields
     phone: { type: String, required: true },
     email: { type: String, required: true },
@@ -28,6 +29,7 @@ const clinicSchema = new mongoose.Schema({
     registrationCertificate: { type: String },
     clinicImage: { type: String },
     panNumber: { type: String, required: true },
+    hprId: { type: String, required: false, default: null },
     operatingHours: { type: String, required: true },
     staffName: {
         type: String,
