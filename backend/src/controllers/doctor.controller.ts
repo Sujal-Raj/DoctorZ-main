@@ -616,6 +616,10 @@ export const getDoctorNotifications = async (req: Request, res: Response) => {
   try {
     const { doctorId } = req.params;
 
+    if (!doctorId || doctorId === "null" || doctorId === "undefined" || !mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(200).json({ notifications: [] }); // return empty instead of throwing error
+    }
+
     const doctor = await doctorModel.findById(doctorId);
 
     // ✅ Null check added

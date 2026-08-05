@@ -1,10 +1,13 @@
 import type { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import PrescriptionModel from "../models/prescription.model.js";
+import BookingModel from "../models/booking.model.js";
+import offlineBooking from "../models/OfflineBookingModel.js";
 import cloudinary from "../config/cloudinary.js";
 import axios from "axios";
 import EMRModel from "../models/emr.model.js";
 import { logAudit } from "../utils/audit.util.js";
+import { transporter } from "../utils/email.js";
 
 export const addPrescription = async (req: Request, res: Response) => {
   try {
@@ -21,9 +24,12 @@ export const addPrescription = async (req: Request, res: Response) => {
       notes,
       name,
       gender,
-      mobileNumber
+      mobileNumber,
+      treatmentPlan,
+      followUp,
+      language = "en"
     } = req.body;
-    console.log(name,mobileNumber);
+    console.log(name, mobileNumber);
 
     if (!doctorId || !diagnosis || !medicines) {
       return res.status(400).json({
@@ -41,54 +47,102 @@ export const addPrescription = async (req: Request, res: Response) => {
       medicines,
       recommendedTests: recommendedTests || [],
       notes: notes || "",
+      treatmentPlan: treatmentPlan || "",
+      followUp: followUp || "",
+      language
     });
+
+    const labels = language === "hi" ? {
+      title: "पर्ची (Prescription)",
+      patientDetails: "मरीज का विवरण",
+      name: "नाम",
+      gender: "लिंग",
+      aadhar: "आधार / पहचान पत्र",
+      diagnosis: "निदान (Diagnosis)",
+      symptoms: "लक्षण (Symptoms)",
+      medicines: "दवाइयाँ (Medicines)",
+      medName: "दवा का नाम",
+      dosage: "खुराक (Dosage)",
+      quantity: "मात्रा (Qty)",
+      tests: "अनुशंसित परीक्षण (Recommended Tests)",
+      treatmentPlan: "उपचार योजना (Treatment Plan)",
+      followUp: "अगली मुलाक़ात / निर्देश (Follow-up)",
+      notes: "टिप्पणी (Notes)",
+      none: "कोई नहीं"
+    } : {
+      title: "Prescription",
+      patientDetails: "Patient Details",
+      name: "Name",
+      gender: "Gender",
+      aadhar: "Aadhar / Patient ID",
+      diagnosis: "Diagnosis",
+      symptoms: "Symptoms",
+      medicines: "Medicines",
+      medName: "Medicine Name",
+      dosage: "Dosage",
+      quantity: "Quantity",
+      tests: "Recommended Tests",
+      treatmentPlan: "Treatment Plan",
+      followUp: "Follow-up Instructions",
+      notes: "Notes",
+      none: "None"
+    };
 
     const htmlContent = `
       <html>
       <head>
+        <meta charset="utf-8">
         <style>
-          body { font-family: Arial; padding: 20px; }
-          h1 { color: #2a4d8f; }
-          .section { margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          table, th, td { border: 1px solid black; padding: 8px; }
+          body { font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.5; }
+          h1 { color: #0c213e; border-bottom: 2px solid #0c213e; padding-bottom: 10px; margin-top: 0; }
+          .section { margin-bottom: 25px; }
+          .section h3 { color: #0c213e; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; font-size: 16px; }
+          .details-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+          .details-grid p { margin: 0; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          table, th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+          th { background-color: #f1f5f9; color: #0c213e; font-weight: bold; font-size: 13px; }
+          td { font-size: 14px; }
+          ul { margin: 0; padding-left: 20px; }
+          li { font-size: 14px; margin-bottom: 4px; }
+          p { font-size: 14px; }
         </style>
       </head>
       <body>
-        <h1>Prescription</h1>
+        <h1>${labels.title}</h1>
 
-        <div class="section">
-          <h3>Patient Details</h3>
-          <p><strong>Name:</strong> ${name || "-"}</p>
-          <p><strong>Gender:</strong> ${gender || "-"}</p>
-          <p><strong>Aadhar:</strong> ${patientAadhar || "-"}</p>
+        <div class="details-grid">
+          <p><strong>${labels.name}:</strong> ${name || "-"}</p>
+          <p><strong>${labels.gender}:</strong> ${gender || "-"}</p>
+          <p><strong>${labels.aadhar}:</strong> ${patientAadhar || "-"}</p>
         </div>
 
         <div class="section">
-          <h3>Diagnosis</h3>
+          <h3>${labels.diagnosis}</h3>
           <p>${diagnosis}</p>
         </div>
 
+        ${symptoms && symptoms.length > 0 ? `
         <div class="section">
-          <h3>Symptoms</h3>
+          <h3>${labels.symptoms}</h3>
           <ul>
-            ${(symptoms || []).map((s: string) => `<li>${s}</li>`).join("")}
+            ${symptoms.map((s: string) => `<li>${s}</li>`).join("")}
           </ul>
-        </div>
+        </div>` : ""}
 
         <div class="section">
-          <h3>Medicines</h3>
+          <h3>${labels.medicines}</h3>
           <table>
             <tr>
-              <th>Name</th>
-              <th>Dosage</th>
-              <th>Quantity</th>
+              <th>${labels.medName}</th>
+              <th>${labels.dosage}</th>
+              <th>${labels.quantity}</th>
             </tr>
             ${(medicines || [])
               .map(
                 (m: any) => `
               <tr>
-                <td>${m.name || "-"}</td>
+                <td><strong>${m.name || "-"}</strong></td>
                 <td>${m.dosage || "-"}</td>
                 <td>${m.quantity || "-"}</td>
               </tr>
@@ -98,17 +152,31 @@ export const addPrescription = async (req: Request, res: Response) => {
           </table>
         </div>
 
+        ${recommendedTests && recommendedTests.length > 0 ? `
         <div class="section">
-          <h3>Recommended Tests</h3>
+          <h3>${labels.tests}</h3>
           <ul>
-            ${(recommendedTests || []).map((t: string) => `<li>${t}</li>`).join("")}
+            ${recommendedTests.map((t: string) => `<li>${t}</li>`).join("")}
           </ul>
-        </div>
+        </div>` : ""}
 
+        ${treatmentPlan ? `
         <div class="section">
-          <h3>Notes</h3>
-          <p>${notes || "None"}</p>
-        </div>
+          <h3>${labels.treatmentPlan}</h3>
+          <p>${treatmentPlan}</p>
+        </div>` : ""}
+
+        ${followUp ? `
+        <div class="section">
+          <h3>${labels.followUp}</h3>
+          <p>${followUp}</p>
+        </div>` : ""}
+
+        ${notes ? `
+        <div class="section">
+          <h3>${labels.notes}</h3>
+          <p>${notes}</p>
+        </div>` : ""}
       </body>
       </html>
     `;
@@ -277,7 +345,7 @@ export const getPrescriptionsForUser = async (req: Request, res: Response) => {
     path: "doctorId",
     select: "fullName specialization ",
   })
-  .sort({ createdAt: -1 });
+  .sort({ _id: -1 });
 
     return res.status(200).json({
       count: prescriptions.length,
@@ -289,5 +357,127 @@ export const getPrescriptionsForUser = async (req: Request, res: Response) => {
       message: "Something went wrong",
       error: err instanceof Error ? err.message : err,
     });
+  }
+};
+
+export const getConsultationDetails = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+
+    // 1. Try to find in online bookings
+    let booking: any = await BookingModel.findById(bookingId).populate("userId").lean();
+    let isOffline = false;
+
+    if (!booking) {
+      // 2. Try to find in offline bookings
+      booking = await offlineBooking.findById(bookingId).populate("userId").lean();
+      isOffline = true;
+    }
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // 3. Extract patient details
+    let patientInfo: any = {};
+    if (isOffline) {
+      const user = booking.userId;
+      patientInfo = {
+        name: user?.fullName || booking.patient?.name || "Walk-in Patient",
+        gender: user?.gender || booking.patient?.gender || "Unknown",
+        mobileNumber: user?.mobileNumber || booking.patient?.contact || "",
+        aadhar: user?.aadhar || booking.patient?.aadhar || "",
+        age: user?.dob ? new Date().getFullYear() - new Date(user.dob).getFullYear() : (booking.patient?.age || ""),
+        dob: user?.dob || null,
+        patientId: user?._id || null,
+      };
+    } else {
+      const user = booking.userId;
+      patientInfo = {
+        name: booking.patient?.name || user?.fullName || "Online Patient",
+        gender: booking.patient?.gender || user?.gender || "Unknown",
+        mobileNumber: booking.patient?.contact || user?.mobileNumber || "",
+        aadhar: booking.patient?.aadhar || user?.aadhar || "",
+        age: booking.patient?.age || (user?.dob ? new Date().getFullYear() - new Date(user.dob).getFullYear() : ""),
+        dob: user?.dob || null,
+        patientId: user?._id || null,
+      };
+    }
+
+    // 4. Fetch EMR profile (Allergies, chronic conditions, etc.)
+    let emrProfile = await EMRModel.findOne({
+      $or: [
+        ...(patientInfo.patientId ? [{ patientId: patientInfo.patientId }] : []),
+        ...(patientInfo.aadhar ? [{ aadhar: Number(patientInfo.aadhar) }] : []),
+        { mobileNumber: patientInfo.mobileNumber }
+      ]
+    }).lean();
+
+    // 5. Fetch all historical prescriptions for this patient
+    const pastPrescriptions = await PrescriptionModel.find({
+      $or: [
+        ...(patientInfo.aadhar ? [{ patientAadhar: patientInfo.aadhar }] : []),
+        { mobileNumber: patientInfo.mobileNumber },
+        { name: patientInfo.name }
+      ]
+    })
+    .populate("doctorId", "fullName specialization")
+    .sort({ _id: -1 })
+    .lean();
+
+    return res.status(200).json({
+      success: true,
+      patientInfo,
+      emrProfile: emrProfile || { allergies: [], diseases: [], pastSurgeries: [], currentMedications: [] },
+      pastPrescriptions: pastPrescriptions || []
+    });
+
+  } catch (err) {
+    console.error("Error fetching consultation details:", err);
+    return res.status(500).json({ message: "Internal server error", error: err instanceof Error ? err.message : err });
+  }
+};
+
+export const sendPrescriptionEmail = async (req: Request, res: Response) => {
+  try {
+    const { prescriptionId, email } = req.body;
+
+    if (!prescriptionId || !email) {
+      return res.status(400).json({ message: "prescriptionId and email are required" });
+    }
+
+    const prescription = await PrescriptionModel.findById(prescriptionId).populate("doctorId", "fullName");
+    if (!prescription) {
+      return res.status(404).json({ message: "Prescription not found" });
+    }
+
+    const mailOptions = {
+      from: process.env.MAIL_USER,
+      to: email,
+      subject: `Prescription from Dr. ${(prescription.doctorId as any)?.fullName || "Doctor"}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #0c213e;">Prescription Details</h2>
+          <p>Dear Patient,</p>
+          <p>Your doctor has generated a digital prescription for you on the DoctorZ platform.</p>
+          <p>You can view, print, or download your prescription image/document directly using the link below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${prescription.pdfUrl}" target="_blank" style="background-color: #0c213e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Prescription</a>
+          </div>
+          <p>If the button above does not work, copy and paste this URL into your browser:</p>
+          <p><a href="${prescription.pdfUrl}" target="_blank">${prescription.pdfUrl}</a></p>
+          <br/>
+          <hr style="border: 0; border-top: 1px solid #eee;" />
+          <p style="font-size: 12px; color: #777; text-align: center;">This is an automated email from the DoctorZ Platform. Please do not reply directly to this message.</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ success: true, message: "Email sent successfully" });
+  } catch (err) {
+    console.error("Error sending prescription email:", err);
+    return res.status(500).json({ message: "Failed to send email", error: err instanceof Error ? err.message : err });
   }
 };

@@ -14,10 +14,12 @@ export interface IPrescription extends Document{
   medicines:IMedicine[];
   recommendedTests?:string[];
   pdfUrl?:string;
-   notes?:string;
-   name?:string;
-   mobileNumber?:string;
-
+  notes?:string;
+  name?:string;
+  mobileNumber?:string;
+  treatmentPlan?:string;
+  followUp?:string;
+  language?:string;
 }
 
 const MedicineSchema = new Schema<IMedicine>(
@@ -58,10 +60,11 @@ diagnosis: { type: String, required: true },
 
     recommendedTests: { type: [String], default: [] },
     notes:{type:String},
-    pdfUrl:{type:String}
-
-
-})
+    pdfUrl:{type:String},
+    treatmentPlan:{type:String},
+    followUp:{type:String},
+    language:{type:String, default:"en"}
+}, { timestamps: true })
 const PrescriptionModel=mongoose.model<IPrescription>(
   "Prescription",
   PrescriptionSchema

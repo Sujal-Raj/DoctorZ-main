@@ -30,7 +30,10 @@ const PrescriptionSchema = new Schema({
     medicines: { type: [MedicineSchema], required: true },
     recommendedTests: { type: [String], default: [] },
     notes: { type: String },
-    pdfUrl: { type: String }
-});
+    pdfUrl: { type: String },
+    treatmentPlan: { type: String },
+    followUp: { type: String },
+    language: { type: String, default: "en" }
+}, { timestamps: true });
 const PrescriptionModel = mongoose.model("Prescription", PrescriptionSchema);
 export default PrescriptionModel;

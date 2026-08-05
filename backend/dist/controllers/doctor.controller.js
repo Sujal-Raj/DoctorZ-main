@@ -5,6 +5,7 @@ import Booking from "../models/booking.model.js";
 import jwt from "jsonwebtoken";
 import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
+import mongoose from "mongoose";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 // const doctorRegister = async (req: Request, res: Response) => {
 //   try {
@@ -471,6 +472,9 @@ export const searchDoctors = async (req, res) => {
 export const getDoctorNotifications = async (req, res) => {
     try {
         const { doctorId } = req.params;
+        if (!doctorId || doctorId === "null" || doctorId === "undefined" || !mongoose.Types.ObjectId.isValid(doctorId)) {
+            return res.status(200).json({ notifications: [] }); // return empty instead of throwing error
+        }
         const doctor = await doctorModel.findById(doctorId);
         // ✅ Null check added
         if (!doctor) {
