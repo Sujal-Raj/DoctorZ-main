@@ -155,6 +155,30 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Doctor Staff Notes: broadcast note message to all clients in the clinic room
+  socket.on("doctorStaffNote", (data) => {
+    try {
+      if (data && data.roomId) {
+        io.to(data.roomId).emit("staffNoteReceived", data);
+        console.log(`Staff note broadcasted to room ${data.roomId}:`, data.text);
+      }
+    } catch (err) {
+      console.error("doctorStaffNote err", err);
+    }
+  });
+
+  // Doctor Queue Status Updates: broadcast queue status changes to all clients in the clinic room
+  socket.on("doctorQueueUpdate", (data) => {
+    try {
+      if (data && data.roomId) {
+        io.to(data.roomId).emit("queueStatusReceived", data);
+        console.log(`Queue status update broadcasted to room ${data.roomId}:`, data.status);
+      }
+    } catch (err) {
+      console.error("doctorQueueUpdate err", err);
+    }
+  });
+
   // Disconnect handling: cleanup maps
   socket.on("disconnect", () => {
     try {

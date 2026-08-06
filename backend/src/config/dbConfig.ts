@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import patientModel from "../models/patient.model.js";
 import path from "path";
 import { createDefaultAdmin } from "../utils/createDefaultAdmin.js";
+import seedMasterMedicines from "../utils/seedMedicines.js";
 
 
 console.log(process.env.NODE_ENV);
@@ -27,6 +28,7 @@ const dbConnect = async () => {
     await mongoose.connect(MONGO_URI);
     console.log("Database Connected");
     createDefaultAdmin();
+    seedMasterMedicines();
 
   } catch (error) {
     console.log(error);

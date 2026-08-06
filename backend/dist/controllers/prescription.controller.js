@@ -367,7 +367,9 @@ export const getConsultationDetails = async (req, res) => {
             success: true,
             patientInfo,
             emrProfile: emrProfile || { allergies: [], diseases: [], pastSurgeries: [], currentMedications: [] },
-            pastPrescriptions: pastPrescriptions || []
+            pastPrescriptions: pastPrescriptions || [],
+            clinicId: booking?.clinicId || null,
+            doctorId: booking?.doctorId || null
         });
     }
     catch (err) {

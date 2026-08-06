@@ -9,6 +9,8 @@ import clinicModel from "../models/clinic.model.js";
 import patientModel from "../models/patient.model.js";
 import mongoose from "mongoose";
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js"
+import MasterMedicineModel from "../models/masterMedicine.model.js";
+import KitModel from "../models/kit.model.js";
 
 interface MulterFiles {
   [fieldname: string]: Express.Multer.File[];
@@ -859,6 +861,70 @@ const deleteMedicineFromList = async (req: Request, res: Response) => {
 };
 
 
+const searchMasterMedicines = async (req: Request, res: Response) => {
+  try {
+    const q = req.query.q ? String(req.query.q).trim() : "";
+    if (!q) {
+      return res.status(200).json({ success: true, medicines: [] });
+    }
+
+    const results = await MasterMedicineModel.find({
+      name: { $regex: q, $options: "i" }
+    }).limit(30);
+
+    return res.status(200).json({
+      success: true,
+      medicines: results
+    });
+  } catch (error) {
+    console.error("searchMasterMedicines err", error);
+    res.status(500).json({ success: false, message: "Search failed" });
+  }
+};
+
+const createKit = async (req: Request, res: Response) => {
+  try {
+    const { doctorId, name, medicines } = req.body;
+    if (!doctorId || !name || !medicines || !Array.isArray(medicines)) {
+      return res.status(400).json({ success: false, message: "Invalid payload params" });
+    }
+
+    const kit = new KitModel({
+      doctorId,
+      name,
+      medicines
+    });
+
+    const saved = await kit.save();
+    return res.status(201).json({
+      success: true,
+      kit: saved
+    });
+  } catch (error) {
+    console.error("createKit err", error);
+    res.status(500).json({ success: false, message: "Failed to create kit" });
+  }
+};
+
+const getKits = async (req: Request, res: Response) => {
+  try {
+    const { doctorId } = req.params;
+    if (!doctorId) {
+      return res.status(400).json({ success: false, message: "Doctor ID is required" });
+    }
+
+    const kits = await KitModel.find({ doctorId });
+    return res.status(200).json({
+      success: true,
+      kits
+    });
+  } catch (error) {
+    console.error("getKits err", error);
+    res.status(500).json({ success: false, message: "Failed to fetch kits" });
+  }
+};
+
+
 export default {
   getAllDoctors,
   doctorRegister,
@@ -877,4 +943,7 @@ export default {
   addMedicineToList,
   deleteMedicineFromList,
   getMedicineList,
+  searchMasterMedicines,
+  createKit,
+  getKits,
 };
